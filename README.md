@@ -1,60 +1,64 @@
 # ptab-cli
 
-USPTO PTAB(Patent Trial and Appeal Board) API를 터미널에서 직접 조회하는 CLI 도구.
-IPR/PGR/CBM Trial 절차·결정·문서, 항소 결정, 저촉심사 결정을 검색·조회합니다.
+A command-line tool for querying the USPTO Patent Trial and Appeal Board (PTAB) API directly from your terminal. Search and retrieve IPR/PGR/CBM trial proceedings, decisions, documents, appeal decisions, and interference decisions.
 
-## 설치
+## Installation
 
 ```bash
 pip install ptab-cli
-# 또는
+# or
 uv tool install ptab-cli
-# 또는
+# or
 pipx install ptab-cli
 ```
 
-## 빠른 시작
+## Quick Start
 
 ```bash
-# 1. API 키 저장
+# 1. Save your API key
 ptab configure
 
-# 2. IPR 절차 검색
+# 2. Search IPR proceedings
 ptab proc search --q "petitionerPartyName:Apple" --type IPR
 
-# 3. Trial 번호로 단건 조회
+# 3. Look up a single trial
 ptab proc get IPR2023-00001
 
-# 4. Trial의 결정 목록
+# 4. List decisions for a trial
 ptab decision list IPR2023-00001
 ```
 
-## API 키 설정
+## API Key Setup
 
-우선순위 (높은 순):
+Priority order (highest first):
 
-| 방식 | 예시 |
+| Method | Example |
 |---|---|
-| 명령어 옵션 | `ptab proc get IPR2023-00001 --api-key KEY` |
-| 환경변수 | `export USPTO_API_KEY=KEY` |
-| 설정 파일 | `ptab configure` → `~/.ptab-cli.toml` |
+| CLI option | `ptab proc get IPR2023-00001 --api-key KEY` |
+| Environment variable | `export USPTO_API_KEY=KEY` |
+| Config file | `ptab configure` → `~/.ptab-cli.toml` |
 
 ```bash
-ptab configure          # 대화형 설정
-ptab configure --show   # 현재 설정 확인
+ptab configure          # Interactive setup (saves API key + timeout)
+ptab configure --show   # Show current configuration
 ```
 
-## 명령어
+Timeout follows the same priority:
+- `--timeout N` global option
+- `REQUEST_TIMEOUT` environment variable
+- `~/.ptab-cli.toml` `[http] timeout` (default: 30s)
 
-### proc — Trial 절차 (IPR/PGR/CBM)
+## Commands
+
+### proc — Trial Proceedings (IPR/PGR/CBM)
 
 ```bash
 ptab proc search [--q Q] [--type IPR|PGR|CBM] [--from DATE] [--to DATE] [--limit N] [--sort FIELD]
 ptab proc get TRIAL_NUMBER
-ptab proc download [--q Q] --out FILE.zip
+ptab proc download [--q Q] [--type IPR|PGR|CBM] [--from DATE] [--to DATE] --out FILE.zip
 ```
 
-### decision — Trial 결정
+### decision — Trial Decisions
 
 ```bash
 ptab decision search [--q Q] [--type TYPE] [--petitioner NAME] [--patent NUMBER] [--from DATE] [--to DATE]
@@ -63,7 +67,7 @@ ptab decision list TRIAL_NUMBER
 ptab decision download [--q Q] --out FILE.zip
 ```
 
-### doc — Trial 문서
+### doc — Trial Documents
 
 ```bash
 ptab doc search [--q Q] [--type TYPE] [--from DATE] [--to DATE]
@@ -72,7 +76,7 @@ ptab doc list TRIAL_NUMBER
 ptab doc download [--q Q] --out FILE.zip
 ```
 
-### appeal — 항소 결정
+### appeal — Appeal Decisions
 
 ```bash
 ptab appeal search [--q Q] [--from DATE] [--to DATE]
@@ -81,7 +85,7 @@ ptab appeal list APPEAL_NUMBER
 ptab appeal download [--q Q] --out FILE.zip
 ```
 
-### interference — 저촉심사 결정
+### interference — Interference Decisions
 
 ```bash
 ptab interference search [--q Q] [--from DATE] [--to DATE]
@@ -90,74 +94,82 @@ ptab interference list INTERFERENCE_NUMBER
 ptab interference download [--q Q] --out FILE.zip
 ```
 
-## 공통 옵션
+## Options
 
-모든 `search` 명령에 적용:
-
-```
---q TEXT          Lucene 쿼리 문자열
---from DATE       시작일 (YYYY-MM-DD)
---to DATE         종료일 (YYYY-MM-DD)
---limit N         최대 결과 수 (기본: 25)
---offset N        페이지 오프셋 (기본: 0)
---sort FIELD      정렬 필드 (예: "filingDate desc")
---format/-f       출력 포맷: table | json | csv (기본: table)
---out FILE        결과 저장 경로 (csv/json)
---api-key KEY     API 키 (일회성 override)
-```
-
-글로벌 옵션:
+All `search` commands accept:
 
 ```
---verbose/-v      HTTP 요청/응답 디버그 로그 (stderr)
---timeout N       요청 타임아웃 초
---version         버전 출력
+--q TEXT          Lucene query string
+--from DATE       Start date (YYYY-MM-DD)
+--to DATE         End date (YYYY-MM-DD)
+--limit N         Maximum results (default: 25)
+--offset N        Page offset (default: 0)
+--sort FIELD      Sort field (e.g. "filingDate desc")
+--format/-f       Output format: table | json | csv (default: table)
+--out FILE        Save output to file (csv/json)
+--api-key KEY     API key (one-time override)
 ```
 
-## 출력 포맷
-
-**table** (기본) — 터미널 가독성 우선, 핵심 필드만 표시:
+Global options (placed immediately after `ptab`):
 
 ```
-┌──────────────────┬──────┬──────────────┬────────────────┬──────────────┐
-│ Trial Number     │ Type │ Filing Date  │ Patent Owner   │ Status       │
-├──────────────────┼──────┼──────────────┼────────────────┼──────────────┤
-│ IPR2023-00001    │ IPR  │ 2023-01-05   │ Acme Corp      │ Terminated   │
-└──────────────────┴──────┴──────────────┴────────────────┴──────────────┘
-총 1건
+--verbose/-v      Debug HTTP request/response logs (stderr)
+--timeout N       Request timeout in seconds
+--version         Show version
 ```
 
-**json** — API 응답 원문 pretty-print (파이프라인 연계용)
+## Output Formats
 
-**csv** — 헤더 포함 CSV (스프레드시트·데이터 분석용)
+**table** (default) — Terminal-friendly, key fields only:
 
-## 사용 예시
+```
+ Trial No.       Type  Filed       Status       Petitioner        Patent No.
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ IPR2023-00001   IPR   2023-01-05  Terminated   Apple Inc.        US9876543
+
+1 results (1 total)
+```
+
+**json** — Raw API response, pretty-printed (useful for piping)
+
+**csv** — CSV with headers (UTF-8 BOM, for spreadsheets and data analysis)
+
+## Examples
 
 ```bash
-# 2023년 Apple IPR 청구 검색
+# Search Apple IPR filings in 2023
 ptab proc search --q "petitionerPartyName:Apple" --type IPR --from 2023-01-01 --to 2023-12-31
 
-# Trial 단건 조회 (JSON 출력)
+# Get a single trial as JSON
 ptab proc get IPR2023-00001 --format json
 
-# 최종 서면 결정 CSV 저장
+# Save Final Written Decisions to CSV
 ptab decision search --type "Final Written Decision" --from 2024-01-01 --format csv --out decisions.csv
 
-# Samsung IPR 절차 ZIP 다운로드
+# Search decisions by petitioner name
+ptab decision search --petitioner Apple --format csv --out apple_decisions.csv
+
+# Search decisions by patent number
+ptab decision search --patent US9876543
+
+# Download Samsung IPR proceedings as ZIP
 ptab proc download --q "petitionerPartyName:Samsung" --type IPR --out samsung_ipr.zip
 
-# Trial 문서 목록
+# List documents for a trial
 ptab doc list IPR2023-00001
 
-# Lucene 쿼리 조합
+# Combine Lucene query clauses
 ptab proc search --q "statusCategory:Terminated AND trialMetaData.trialTypeCode:IPR"
+
+# Extend timeout for slow connections
+ptab --timeout 60 proc search --q "petitionerPartyName:Apple"
 ```
 
-## 요구사항
+## Requirements
 
-- Python 3.11 이상
-- USPTO PTAB API 키 ([developer.uspto.gov](https://developer.uspto.gov) 에서 발급)
+- Python 3.11+
+- USPTO PTAB API key (obtain at [developer.uspto.gov](https://developer.uspto.gov))
 
-## 라이선스
+## License
 
 MIT
