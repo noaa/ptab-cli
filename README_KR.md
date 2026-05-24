@@ -56,7 +56,7 @@ ptab configure --show   # 현재 설정 확인
 ```bash
 ptab proc search [--q Q] [--type IPR|PGR|CBM] [--from DATE] [--to DATE] [--limit N] [--sort FIELD]
 ptab proc get TRIAL_NUMBER
-ptab proc download [--q Q] [--type IPR|PGR|CBM] [--from DATE] [--to DATE] --out FILE.zip
+ptab proc download [--q Q] [--type IPR|PGR|CBM] [--from DATE] [--to DATE] --out FILE.json
 ```
 
 ### decision — Trial 결정
@@ -65,7 +65,7 @@ ptab proc download [--q Q] [--type IPR|PGR|CBM] [--from DATE] [--to DATE] --out 
 ptab decision search [--q Q] [--type TYPE] [--petitioner NAME] [--patent NUMBER] [--from DATE] [--to DATE]
 ptab decision get DOC_ID
 ptab decision list TRIAL_NUMBER
-ptab decision download [--q Q] --out FILE.zip
+ptab decision download [--q Q] --out FILE.json
 ```
 
 ### doc — Trial 문서
@@ -74,7 +74,8 @@ ptab decision download [--q Q] --out FILE.zip
 ptab doc search [--q Q] [--type TYPE] [--from DATE] [--to DATE]
 ptab doc get DOC_ID
 ptab doc list TRIAL_NUMBER
-ptab doc download [--q Q] --out FILE.zip
+ptab doc pdf DOC_ID [--out FILE.pdf]
+ptab doc download [--q Q] --out FILE.json
 ```
 
 ### appeal — 항소 결정
@@ -83,7 +84,7 @@ ptab doc download [--q Q] --out FILE.zip
 ptab appeal search [--q Q] [--from DATE] [--to DATE]
 ptab appeal get DOC_ID
 ptab appeal list APPEAL_NUMBER
-ptab appeal download [--q Q] --out FILE.zip
+ptab appeal download [--q Q] --out FILE.json
 ```
 
 ### interference — 저촉심사 결정
@@ -92,7 +93,7 @@ ptab appeal download [--q Q] --out FILE.zip
 ptab interference search [--q Q] [--from DATE] [--to DATE]
 ptab interference get DOC_ID
 ptab interference list INTERFERENCE_NUMBER
-ptab interference download [--q Q] --out FILE.zip
+ptab interference download [--q Q] --out FILE.json
 ```
 
 ## 공통 옵션
@@ -153,11 +154,15 @@ ptab decision search --petitioner Apple --format csv --out apple_decisions.csv
 # 특정 특허번호 관련 결정 검색
 ptab decision search --patent US9876543
 
-# Samsung IPR 절차 ZIP 다운로드
-ptab proc download --q "petitionerPartyName:Samsung" --type IPR --out samsung_ipr.zip
+# Samsung IPR 절차 JSON 다운로드
+ptab proc download --q "petitionerPartyName:Samsung" --type IPR --out samsung_ipr.json
 
 # Trial 문서 목록
 ptab doc list IPR2023-00001
+
+# 개별 문서 PDF 다운로드
+ptab doc pdf 171200528
+ptab doc pdf 171200528 --out petition.pdf
 
 # Lucene 쿼리 조합
 ptab proc search --q "statusCategory:Terminated AND trialMetaData.trialTypeCode:IPR"

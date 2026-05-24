@@ -55,7 +55,7 @@ Timeout follows the same priority:
 ```bash
 ptab proc search [--q Q] [--type IPR|PGR|CBM] [--from DATE] [--to DATE] [--limit N] [--sort FIELD]
 ptab proc get TRIAL_NUMBER
-ptab proc download [--q Q] [--type IPR|PGR|CBM] [--from DATE] [--to DATE] --out FILE.zip
+ptab proc download [--q Q] [--type IPR|PGR|CBM] [--from DATE] [--to DATE] --out FILE.json
 ```
 
 ### decision — Trial Decisions
@@ -64,7 +64,7 @@ ptab proc download [--q Q] [--type IPR|PGR|CBM] [--from DATE] [--to DATE] --out 
 ptab decision search [--q Q] [--type TYPE] [--petitioner NAME] [--patent NUMBER] [--from DATE] [--to DATE]
 ptab decision get DOC_ID
 ptab decision list TRIAL_NUMBER
-ptab decision download [--q Q] --out FILE.zip
+ptab decision download [--q Q] --out FILE.json
 ```
 
 ### doc — Trial Documents
@@ -73,7 +73,8 @@ ptab decision download [--q Q] --out FILE.zip
 ptab doc search [--q Q] [--type TYPE] [--from DATE] [--to DATE]
 ptab doc get DOC_ID
 ptab doc list TRIAL_NUMBER
-ptab doc download [--q Q] --out FILE.zip
+ptab doc pdf DOC_ID [--out FILE.pdf]
+ptab doc download [--q Q] --out FILE.json
 ```
 
 ### appeal — Appeal Decisions
@@ -82,7 +83,7 @@ ptab doc download [--q Q] --out FILE.zip
 ptab appeal search [--q Q] [--from DATE] [--to DATE]
 ptab appeal get DOC_ID
 ptab appeal list APPEAL_NUMBER
-ptab appeal download [--q Q] --out FILE.zip
+ptab appeal download [--q Q] --out FILE.json
 ```
 
 ### interference — Interference Decisions
@@ -91,7 +92,7 @@ ptab appeal download [--q Q] --out FILE.zip
 ptab interference search [--q Q] [--from DATE] [--to DATE]
 ptab interference get DOC_ID
 ptab interference list INTERFERENCE_NUMBER
-ptab interference download [--q Q] --out FILE.zip
+ptab interference download [--q Q] --out FILE.json
 ```
 
 ## Options
@@ -152,11 +153,15 @@ ptab decision search --petitioner Apple --format csv --out apple_decisions.csv
 # Search decisions by patent number
 ptab decision search --patent US9876543
 
-# Download Samsung IPR proceedings as ZIP
-ptab proc download --q "petitionerPartyName:Samsung" --type IPR --out samsung_ipr.zip
+# Download Samsung IPR proceedings as JSON
+ptab proc download --q "petitionerPartyName:Samsung" --type IPR --out samsung_ipr.json
 
 # List documents for a trial
 ptab doc list IPR2023-00001
+
+# Download a single document as PDF
+ptab doc pdf 171200528
+ptab doc pdf 171200528 --out petition.pdf
 
 # Combine Lucene query clauses
 ptab proc search --q "statusCategory:Terminated AND trialMetaData.trialTypeCode:IPR"
