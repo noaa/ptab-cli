@@ -115,7 +115,7 @@ def _unwrap_single(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def print_error(msg: str) -> None:
-    _err_console.print(f"[red]오류:[/red] {msg}")
+    _err_console.print(f"[red]Error:[/red] {msg}")
 
 
 def print_info(msg: str) -> None:
@@ -157,7 +157,7 @@ def _print_table(
     total: int,
 ) -> None:
     if not results:
-        _console.print("[yellow]결과 없음[/yellow]")
+        _console.print("[yellow]No results[/yellow]")
         return
 
     table = Table(box=box.SIMPLE_HEAVY, show_footer=False, highlight=True)
@@ -169,14 +169,14 @@ def _print_table(
         table.add_row(*row)
 
     _console.print(table)
-    _console.print(f"[dim]총 {len(results)}건 (전체 {total:,}건)[/dim]", highlight=False)
+    _console.print(f"[dim]Showing {len(results)} of {total:,} total[/dim]", highlight=False)
 
 
 def _print_kv(record: dict[str, Any]) -> None:
     """Key-Value 세로 형식 출력 (단건 조회용)."""
     flat = _flatten(record)
     if not flat:
-        _console.print("[yellow]데이터 없음[/yellow]")
+        _console.print("[yellow]No data[/yellow]")
         return
     max_key = max(len(k) for k in flat)
     for key, val in flat.items():
@@ -203,7 +203,7 @@ def _print_json(data: Any, out_path: Optional[str] = None) -> None:
     if out_path:
         with open(out_path, "w", encoding="utf-8") as f:
             f.write(text)
-        print_info(f"저장: {out_path}")
+        print_info(f"Saved: {out_path}")
     else:
         print(text)
 
@@ -227,4 +227,4 @@ def _print_csv(
 
     if out_path:
         f.close()
-        print_info(f"저장: {out_path}")
+        print_info(f"Saved: {out_path}")

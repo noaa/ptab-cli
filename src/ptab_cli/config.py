@@ -74,12 +74,12 @@ def require_api_key(cli_key: Optional[str] = None) -> str:
     if not key:
         import click
         click.echo(
-            "오류: USPTO API 키가 설정되지 않았습니다.\n"
+            "Error: USPTO API key is not configured.\n"
             "\n"
-            "다음 중 하나로 설정하세요:\n"
-            "  ptab configure          # 설정 파일에 저장 (권장)\n"
-            "  export USPTO_API_KEY=.. # 환경변수\n"
-            "  ptab proc search --api-key KEY ..  # 일회성 옵션",
+            "Set it using one of the following:\n"
+            "  ptab configure          # Save to config file (recommended)\n"
+            "  export USPTO_API_KEY=.. # Environment variable\n"
+            "  ptab proc search --api-key KEY ..  # One-time option",
             err=True,
         )
         sys.exit(1)
@@ -89,7 +89,7 @@ def require_api_key(cli_key: Optional[str] = None) -> str:
 def mask_key(key: str) -> str:
     """API 키를 마스킹하여 반환 (끝 4자리만 표시)."""
     if not key:
-        return "(없음)"
+        return "(none)"
     if len(key) <= 4:
         return "****"
     return "****" + key[-4:]

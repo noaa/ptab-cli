@@ -1,7 +1,7 @@
 """
 ptab-cli: USPTO PTAB Trial proceedings CLI.
 
-명령어 구조:
+Command structure:
   ptab configure
   ptab proc   search | get | download
   ptab decision search | get | list | download
@@ -27,16 +27,16 @@ _FORMATS = ("table", "json", "csv")
 # ── 헬퍼 ──────────────────────────────────────────────────────────────────────
 
 def _common_search_options(f):
-    """search 명령에 공통으로 붙는 옵션 데코레이터 묶음."""
-    f = click.option("--q", "query", default=None, help="Lucene 쿼리 문자열.")(f)
-    f = click.option("--from", "date_from", default=None, metavar="DATE", help="시작일 (YYYY-MM-DD).")(f)
-    f = click.option("--to", "date_to", default=None, metavar="DATE", help="종료일 (YYYY-MM-DD).")(f)
-    f = click.option("--limit", default=25, show_default=True, help="최대 결과 수.")(f)
-    f = click.option("--offset", default=0, show_default=True, help="페이지 오프셋.")(f)
-    f = click.option("--sort", default=None, help="정렬 필드 (예: 'filingDate desc').")(f)
+    """Common option decorator bundle for search commands."""
+    f = click.option("--q", "query", default=None, help="Lucene query string.")(f)
+    f = click.option("--from", "date_from", default=None, metavar="DATE", help="Start date (YYYY-MM-DD).")(f)
+    f = click.option("--to", "date_to", default=None, metavar="DATE", help="End date (YYYY-MM-DD).")(f)
+    f = click.option("--limit", default=25, show_default=True, help="Maximum number of results.")(f)
+    f = click.option("--offset", default=0, show_default=True, help="Page offset.")(f)
+    f = click.option("--sort", default=None, help="Sort field (e.g. 'filingDate desc').")(f)
     f = click.option("--format", "-f", "fmt", type=click.Choice(_FORMATS), default="table", show_default=True)(f)
-    f = click.option("--out", "out_path", default=None, metavar="FILE", help="결과 저장 경로 (csv/json).")(f)
-    f = click.option("--api-key", default=None, help="API 키 (설정 파일·환경변수보다 우선).")(f)
+    f = click.option("--out", "out_path", default=None, metavar="FILE", help="Output file path (csv/json).")(f)
+    f = click.option("--api-key", default=None, help="API key (overrides config file and environment variable).")(f)
     return f
 
 
@@ -49,7 +49,7 @@ def _get_timeout(ctx_obj: dict) -> int:
 
 
 def _build_query(base_q: Optional[str], *clauses: Optional[str]) -> Optional[str]:
-    """여러 Lucene 절을 AND로 합쳐 하나의 q 문자열로 반환."""
+    """Combine multiple Lucene clauses with AND into a single q string."""
     parts = [p for p in [base_q, *clauses] if p]
     return " AND ".join(parts) if parts else None
 
@@ -58,15 +58,15 @@ def _build_query(base_q: Optional[str], *clauses: Optional[str]) -> Optional[str
 
 @click.group(invoke_without_command=True)
 @click.version_option(__version__, prog_name="ptab")
-@click.option("--verbose", "-v", is_flag=True, default=False, help="디버그 로그 출력 (stderr).")
-@click.option("--timeout", default=None, type=int, help="요청 타임아웃 초.")
+@click.option("--verbose", "-v", is_flag=True, default=False, help="Enable debug logging (stderr).")
+@click.option("--timeout", default=None, type=int, help="Request timeout in seconds.")
 @click.pass_context
 def main(ctx: click.Context, verbose: bool, timeout: Optional[int]) -> None:
     """USPTO PTAB Trial proceedings CLI.
 
     \b
-    빠른 시작:
-      ptab configure                         # API 키 저장
+    Quick start:
+      ptab configure                         # Save API key
       ptab proc search --q "petitionerPartyName:Apple" --type IPR
       ptab proc get IPR2023-00001
       ptab decision list IPR2023-00001
@@ -84,21 +84,21 @@ def main(ctx: click.Context, verbose: bool, timeout: Optional[int]) -> None:
 # ── configure ─────────────────────────────────────────────────────────────────
 
 @main.command()
-@click.option("--show", is_flag=True, default=False, help="현재 설정만 표시하고 종료.")
+@click.option("--show", is_flag=True, default=False, help="Show current settings and exit.")
 def configure(show: bool) -> None:
-    """API 키와 기본 설정을 저장합니다.
+    """Save API key and default settings.
 
     \b
-    설정 파일: ~/.ptab-cli.toml
-    Enter 입력 시 기존 값 유지.
+    Config file: ~/.ptab-cli.toml
+    Press Enter to keep existing values.
     """
     existing = cfg.load()
     auth_cfg = existing.get("auth", {})
     http_cfg = existing.get("http", {})
 
-    click.echo("PTAB CLI — 설정")
+    click.echo("PTAB CLI — Configuration")
     click.echo("─" * 40)
-    click.echo(f"설정 파일: {cfg.CONFIG_PATH}")
+    click.echo(f"Config file: {cfg.CONFIG_PATH}")
     click.echo()
 
     if show:
@@ -112,13 +112,13 @@ def configure(show: bool) -> None:
     current_timeout = http_cfg.get("timeout", 30)
 
     new_key = click.prompt(
-        f"USPTO API 키 [{cfg.mask_key(current_key)}]",
+        f"USPTO API key [{cfg.mask_key(current_key)}]",
         default="",
         show_default=False,
     ).strip()
 
     new_timeout_str = click.prompt(
-        "요청 타임아웃(초)",
+        "Request timeout (seconds)",
         default=str(current_timeout),
         show_default=True,
     ).strip()
@@ -137,11 +137,11 @@ def configure(show: bool) -> None:
     new_config["http"] = {"timeout": final_timeout}
 
     if not new_config.get("auth"):
-        click.echo("\n경고: API 키가 없습니다. 나중에 다시 실행하세요.", err=True)
+        click.echo("\nWarning: No API key provided. Run again to set one.", err=True)
         return
 
     cfg.save(new_config)
-    click.echo(f"\n설정 저장: {cfg.CONFIG_PATH}")
+    click.echo(f"\nSaved: {cfg.CONFIG_PATH}")
     click.echo(f"  auth.api_key = {cfg.mask_key(final_key)}")
     click.echo(f"  http.timeout = {final_timeout}")
 
@@ -150,17 +150,17 @@ def configure(show: bool) -> None:
 
 @main.group()
 def proc() -> None:
-    """Trial 절차 검색·조회 (IPR/PGR/CBM)."""
+    """Search and retrieve trial proceedings (IPR/PGR/CBM)."""
 
 
 @proc.command("search")
 @_common_search_options
 @click.option("--type", "proc_type", default=None,
               type=click.Choice(["IPR", "PGR", "CBM"], case_sensitive=True),
-              help="절차 유형 필터: IPR | PGR | CBM.")
-@click.option("--petitioner", default=None, help="청구인 이름 키워드 (petitionerPartyName).")
-@click.option("--patent", default=None, help="특허번호 (예: US9876543).")
-@click.option("--status", default=None, help="상태 카테고리 (예: Terminated, Pending).")
+              help="Proceeding type filter: IPR | PGR | CBM.")
+@click.option("--petitioner", default=None, help="Petitioner name keyword (petitionerPartyName).")
+@click.option("--patent", default=None, help="Patent number (e.g. US9876543).")
+@click.option("--status", default=None, help="Status category (e.g. Terminated, Pending).")
 @click.pass_context
 def proc_search(
     ctx: click.Context,
@@ -178,10 +178,10 @@ def proc_search(
     patent: Optional[str],
     status: Optional[str],
 ) -> None:
-    """Trial 절차를 검색합니다.
+    """Search trial proceedings.
 
     \b
-    예시:
+    Examples:
       ptab proc search --petitioner Apple --type IPR --status Terminated
       ptab proc search --patent US9876543
       ptab proc search --from 2023-01-01 --to 2023-12-31 --limit 50
@@ -214,10 +214,10 @@ def proc_search(
 @click.option("--api-key", default=None)
 @click.pass_context
 def proc_get(ctx: click.Context, trial_number: str, fmt: str, api_key: Optional[str]) -> None:
-    """Trial 번호로 개별 절차를 조회합니다.
+    """Retrieve a single proceeding by trial number.
 
     \b
-    예시:
+    Examples:
       ptab proc get IPR2023-00001
       ptab proc get IPR2023-00001 --format json
     """
@@ -232,7 +232,7 @@ def proc_get(ctx: click.Context, trial_number: str, fmt: str, api_key: Optional[
 @click.option("--from", "date_from", default=None, metavar="DATE")
 @click.option("--to", "date_to", default=None, metavar="DATE")
 @click.option("--type", "proc_type", default=None, type=click.Choice(["IPR", "PGR", "CBM"], case_sensitive=True))
-@click.option("--out", "out_path", required=True, metavar="FILE", help="저장할 JSON 파일 경로.")
+@click.option("--out", "out_path", required=True, metavar="FILE", help="Output JSON file path.")
 @click.option("--api-key", default=None)
 @click.pass_context
 def proc_download(
@@ -244,10 +244,10 @@ def proc_download(
     out_path: str,
     api_key: Optional[str],
 ) -> None:
-    """절차 검색 결과를 JSON으로 다운로드합니다.
+    """Download proceeding search results as JSON.
 
     \b
-    예시:
+    Examples:
       ptab proc download --q "petitionerPartyName:Samsung" --out samsung.json
     """
     key = _get_api_key(ctx.obj, api_key)
@@ -265,21 +265,21 @@ def proc_download(
     saved = proceedings.download_proceedings_search(
         api_key=key, save_path=out_path, q=final_q, timeout=timeout,
     )
-    click.echo(f"저장: {saved}")
+    click.echo(f"Saved: {saved}")
 
 
 # ── decision 그룹 ─────────────────────────────────────────────────────────────
 
 @main.group()
 def decision() -> None:
-    """Trial 결정 검색·조회."""
+    """Search and retrieve trial decisions."""
 
 
 @decision.command("search")
 @_common_search_options
-@click.option("--type", "dec_type", default=None, help="결정 유형 (예: 'Institution Decision').")
-@click.option("--petitioner", default=None, help="청구인 이름 키워드.")
-@click.option("--patent", default=None, help="특허번호 (예: US9876543).")
+@click.option("--type", "dec_type", default=None, help="Decision type (e.g. 'Institution Decision').")
+@click.option("--petitioner", default=None, help="Petitioner name keyword.")
+@click.option("--patent", default=None, help="Patent number (e.g. US9876543).")
 @click.pass_context
 def decision_search(
     ctx: click.Context,
@@ -296,10 +296,10 @@ def decision_search(
     petitioner: Optional[str],
     patent: Optional[str],
 ) -> None:
-    """Trial 결정을 검색합니다.
+    """Search trial decisions.
 
     \b
-    예시:
+    Examples:
       ptab decision search --type "Final Written Decision" --from 2024-01-01
       ptab decision search --petitioner Apple --format csv --out apple_decisions.csv
     """
@@ -329,7 +329,7 @@ def decision_search(
 @click.option("--api-key", default=None)
 @click.pass_context
 def decision_get(ctx: click.Context, doc_id: str, fmt: str, api_key: Optional[str]) -> None:
-    """문서 ID로 개별 결정을 조회합니다."""
+    """Retrieve a single decision by document ID."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
     data = decisions.get_decision(api_key=key, document_identifier=doc_id, timeout=timeout)
@@ -342,10 +342,10 @@ def decision_get(ctx: click.Context, doc_id: str, fmt: str, api_key: Optional[st
 @click.option("--api-key", default=None)
 @click.pass_context
 def decision_list(ctx: click.Context, trial_number: str, fmt: str, api_key: Optional[str]) -> None:
-    """Trial 번호별 결정 목록을 조회합니다.
+    """List decisions for a trial number.
 
     \b
-    예시:
+    Examples:
       ptab decision list IPR2023-00001
     """
     key = _get_api_key(ctx.obj, api_key)
@@ -360,23 +360,23 @@ def decision_list(ctx: click.Context, trial_number: str, fmt: str, api_key: Opti
 @click.option("--api-key", default=None)
 @click.pass_context
 def decision_download(ctx: click.Context, query: Optional[str], out_path: str, api_key: Optional[str]) -> None:
-    """결정 검색 결과를 JSON으로 다운로드합니다."""
+    """Download decision search results as JSON."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
     saved = decisions.download_decisions_search(api_key=key, save_path=out_path, q=query, timeout=timeout)
-    click.echo(f"저장: {saved}")
+    click.echo(f"Saved: {saved}")
 
 
 # ── doc 그룹 ──────────────────────────────────────────────────────────────────
 
 @main.group()
 def doc() -> None:
-    """Trial 문서 검색·조회."""
+    """Search and retrieve trial documents."""
 
 
 @doc.command("search")
 @_common_search_options
-@click.option("--type", "doc_type", default=None, help="문서 유형 (예: 'Petition').")
+@click.option("--type", "doc_type", default=None, help="Document type (e.g. 'Petition').")
 @click.pass_context
 def doc_search(
     ctx: click.Context,
@@ -391,7 +391,7 @@ def doc_search(
     api_key: Optional[str],
     doc_type: Optional[str],
 ) -> None:
-    """Trial 문서를 검색합니다."""
+    """Search trial documents."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
 
@@ -416,7 +416,7 @@ def doc_search(
 @click.option("--api-key", default=None)
 @click.pass_context
 def doc_get(ctx: click.Context, doc_id: str, fmt: str, api_key: Optional[str]) -> None:
-    """문서 ID로 개별 문서를 조회합니다."""
+    """Retrieve a single document by document ID."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
     data = documents.get_document(api_key=key, document_identifier=doc_id, timeout=timeout)
@@ -425,16 +425,16 @@ def doc_get(ctx: click.Context, doc_id: str, fmt: str, api_key: Optional[str]) -
 
 @doc.command("list")
 @click.argument("trial_number")
-@click.option("--category", default=None, help="문서 카테고리 필터 (예: FINAL, DECISION, MOTION, Exhibit).")
-@click.option("--party", default=None, help="제출 주체 필터 (BOARD, PETITIONER, PATENT OWNER).")
+@click.option("--category", default=None, help="Document category filter (e.g. FINAL, DECISION, MOTION, Exhibit).")
+@click.option("--party", default=None, help="Filing party filter (BOARD, PETITIONER, PATENT OWNER).")
 @click.option("--format", "-f", "fmt", type=click.Choice(_FORMATS), default="table", show_default=True)
 @click.option("--api-key", default=None)
 @click.pass_context
 def doc_list(ctx: click.Context, trial_number: str, category: Optional[str], party: Optional[str], fmt: str, api_key: Optional[str]) -> None:
-    """Trial 번호별 문서 목록을 조회합니다.
+    """List documents for a trial number.
 
     \b
-    예시:
+    Examples:
       ptab doc list IPR2023-00001
       ptab doc list IPR2023-00001 --category FINAL
       ptab doc list IPR2023-00001 --party BOARD
@@ -458,37 +458,37 @@ def doc_list(ctx: click.Context, trial_number: str, category: Optional[str], par
 @click.option("--api-key", default=None)
 @click.pass_context
 def doc_download(ctx: click.Context, query: Optional[str], out_path: str, api_key: Optional[str]) -> None:
-    """문서 검색 결과를 JSON으로 다운로드합니다."""
+    """Download document search results as JSON."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
     saved = documents.download_documents_search(api_key=key, save_path=out_path, q=query, timeout=timeout)
-    click.echo(f"저장: {saved}")
+    click.echo(f"Saved: {saved}")
 
 
 @doc.command("pdf")
 @click.argument("doc_id")
-@click.option("--out", "out_path", default=None, metavar="FILE", help="저장 경로 (기본값: {DOC_ID}.pdf).")
+@click.option("--out", "out_path", default=None, metavar="FILE", help="Output path (default: {DOC_ID}.pdf).")
 @click.option("--api-key", default=None)
 @click.pass_context
 def doc_pdf(ctx: click.Context, doc_id: str, out_path: Optional[str], api_key: Optional[str]) -> None:
-    """문서 ID로 PDF 파일을 다운로드합니다.
+    """Download a PDF file by document ID.
 
     \b
-    예시:
+    Examples:
       ptab doc pdf 171200528
       ptab doc pdf 171200528 --out FWD_remand.pdf
     """
     key = _get_api_key(ctx.obj, api_key)
     save = out_path or f"{doc_id}.pdf"
     saved = documents.download_document_pdf(api_key=key, document_identifier=doc_id, save_path=save)
-    click.echo(f"저장: {saved}")
+    click.echo(f"Saved: {saved}")
 
 
 # ── appeal 그룹 ───────────────────────────────────────────────────────────────
 
 @main.group()
 def appeal() -> None:
-    """항소 결정 검색·조회."""
+    """Search and retrieve appeal decisions."""
 
 
 @appeal.command("search")
@@ -506,7 +506,7 @@ def appeal_search(
     out_path: Optional[str],
     api_key: Optional[str],
 ) -> None:
-    """항소 결정을 검색합니다."""
+    """Search appeal decisions."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
 
@@ -530,7 +530,7 @@ def appeal_search(
 @click.option("--api-key", default=None)
 @click.pass_context
 def appeal_get(ctx: click.Context, doc_id: str, fmt: str, api_key: Optional[str]) -> None:
-    """문서 ID로 개별 항소 결정을 조회합니다."""
+    """Retrieve a single appeal decision by document ID."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
     data = appeals.get_appeal_decision(api_key=key, document_identifier=doc_id, timeout=timeout)
@@ -543,7 +543,7 @@ def appeal_get(ctx: click.Context, doc_id: str, fmt: str, api_key: Optional[str]
 @click.option("--api-key", default=None)
 @click.pass_context
 def appeal_list(ctx: click.Context, appeal_number: str, fmt: str, api_key: Optional[str]) -> None:
-    """항소 번호별 결정 목록을 조회합니다."""
+    """List decisions for an appeal number."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
     data = appeals.get_decisions_by_appeal(api_key=key, appeal_number=appeal_number, timeout=timeout)
@@ -556,18 +556,18 @@ def appeal_list(ctx: click.Context, appeal_number: str, fmt: str, api_key: Optio
 @click.option("--api-key", default=None)
 @click.pass_context
 def appeal_download(ctx: click.Context, query: Optional[str], out_path: str, api_key: Optional[str]) -> None:
-    """항소 결정 검색 결과를 JSON으로 다운로드합니다."""
+    """Download appeal decision search results as JSON."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
     saved = appeals.download_appeal_decisions_search(api_key=key, save_path=out_path, q=query, timeout=timeout)
-    click.echo(f"저장: {saved}")
+    click.echo(f"Saved: {saved}")
 
 
 # ── interference 그룹 ─────────────────────────────────────────────────────────
 
 @main.group()
 def interference() -> None:
-    """저촉심사 결정 검색·조회."""
+    """Search and retrieve interference decisions."""
 
 
 @interference.command("search")
@@ -585,7 +585,7 @@ def interference_search(
     out_path: Optional[str],
     api_key: Optional[str],
 ) -> None:
-    """저촉심사 결정을 검색합니다."""
+    """Search interference decisions."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
 
@@ -609,7 +609,7 @@ def interference_search(
 @click.option("--api-key", default=None)
 @click.pass_context
 def interference_get(ctx: click.Context, doc_id: str, fmt: str, api_key: Optional[str]) -> None:
-    """문서 ID로 개별 저촉심사 결정을 조회합니다."""
+    """Retrieve a single interference decision by document ID."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
     data = interferences.get_interference_decision(api_key=key, document_identifier=doc_id, timeout=timeout)
@@ -622,7 +622,7 @@ def interference_get(ctx: click.Context, doc_id: str, fmt: str, api_key: Optiona
 @click.option("--api-key", default=None)
 @click.pass_context
 def interference_list(ctx: click.Context, interference_number: str, fmt: str, api_key: Optional[str]) -> None:
-    """저촉심사 번호별 결정 목록을 조회합니다."""
+    """List decisions for an interference number."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
     data = interferences.get_decisions_by_interference(
@@ -637,10 +637,10 @@ def interference_list(ctx: click.Context, interference_number: str, fmt: str, ap
 @click.option("--api-key", default=None)
 @click.pass_context
 def interference_download(ctx: click.Context, query: Optional[str], out_path: str, api_key: Optional[str]) -> None:
-    """저촉심사 결정 검색 결과를 JSON으로 다운로드합니다."""
+    """Download interference decision search results as JSON."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
     saved = interferences.download_interference_decisions_search(
         api_key=key, save_path=out_path, q=query, timeout=timeout,
     )
-    click.echo(f"저장: {saved}")
+    click.echo(f"Saved: {saved}")

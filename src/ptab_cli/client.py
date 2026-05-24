@@ -22,11 +22,11 @@ def _to_click_error(e: Exception) -> click.ClickException:
         status = e.response.status_code if e.response is not None else "?"
         # JSON 오류 응답에서 사람이 읽기 좋은 메시지 추출
         msg = _extract_api_message(e.response) or (e.response.text[:200] if e.response is not None else str(e))
-        return click.ClickException(f"API 오류 {status}: {msg}")
+        return click.ClickException(f"API error {status}: {msg}")
     if isinstance(e, requests.exceptions.ConnectionError):
-        return click.ClickException("네트워크 연결 실패. 인터넷 연결을 확인하세요.")
+        return click.ClickException("Network connection failed. Check your internet connection.")
     if isinstance(e, requests.exceptions.Timeout):
-        return click.ClickException("요청 타임아웃. --timeout 값을 늘려보세요.")
+        return click.ClickException("Request timed out. Try increasing the --timeout value.")
     return click.ClickException(str(e))
 
 
@@ -77,16 +77,16 @@ def get(
             status = e.response.status_code
             if status in RETRY_STATUSES and attempt < retries - 1:
                 wait = backoff_factor * (2 ** attempt)
-                logger.warning(f"HTTP {status} — {wait}초 후 재시도 ({attempt + 1}/{retries})")
+                logger.warning(f"HTTP {status} — retrying in {wait}s ({attempt + 1}/{retries})")
                 time.sleep(wait)
             else:
-                logger.error(f"GET 요청 실패: {e}")
+                logger.error(f"GET request failed: {e}")
                 raise _to_click_error(e) from e
         except requests.exceptions.RequestException as e:
-            logger.error(f"GET 요청 오류: {e}")
+            logger.error(f"GET request error: {e}")
             raise _to_click_error(e) from e
 
-    raise click.ClickException(f"GET {url} — {retries}회 재시도 후 실패")
+    raise click.ClickException(f"GET {url} — failed after {retries} retries")
 
 
 def download_binary(
@@ -120,7 +120,7 @@ def download_binary(
 
     for attempt in range(retries):
         try:
-            logger.info(f"파일 다운로드: {url} → {save_path}")
+            logger.info(f"Downloading: {url} → {save_path}")
             response = requests.get(url, headers=headers, stream=True, timeout=timeout)
             response.raise_for_status()
 
@@ -128,22 +128,22 @@ def download_binary(
             with open(save_path, "wb") as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
-            logger.info(f"다운로드 완료: {save_path}")
+            logger.info(f"Download complete: {save_path}")
             return os.path.abspath(save_path)
         except requests.exceptions.HTTPError as e:
             status = e.response.status_code
             if status in RETRY_STATUSES and attempt < retries - 1:
                 wait = backoff_factor * (2 ** attempt)
-                logger.warning(f"HTTP {status} — {wait}초 후 재시도")
+                logger.warning(f"HTTP {status} — retrying in {wait}s")
                 time.sleep(wait)
             else:
-                logger.error(f"다운로드 실패: {e}")
+                logger.error(f"Download failed: {e}")
                 raise _to_click_error(e) from e
         except requests.exceptions.RequestException as e:
-            logger.error(f"다운로드 오류: {e}")
+            logger.error(f"Download error: {e}")
             raise _to_click_error(e) from e
 
-    raise click.ClickException(f"다운로드 {url} — {retries}회 재시도 후 실패")
+    raise click.ClickException(f"Download {url} — failed after {retries} retries")
 
 
 def get_and_save_json(
@@ -176,7 +176,7 @@ def get_and_save_json(
     import json as _json
     with open(abs_path, "w", encoding="utf-8") as f:
         _json.dump(data, f, ensure_ascii=False, indent=2)
-    logger.info(f"JSON 저장 완료: {abs_path}")
+    logger.info(f"JSON saved: {abs_path}")
     return abs_path
 
 
@@ -207,7 +207,7 @@ def download_url(
 
     for attempt in range(retries):
         try:
-            logger.info(f"파일 다운로드: {full_url} → {save_path}")
+            logger.info(f"Downloading: {full_url} → {save_path}")
             response = requests.get(full_url, headers=headers, stream=True, timeout=timeout, allow_redirects=True)
             response.raise_for_status()
 
@@ -215,19 +215,19 @@ def download_url(
             with open(save_path, "wb") as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
-            logger.info(f"다운로드 완료: {save_path}")
+            logger.info(f"Download complete: {save_path}")
             return os.path.abspath(save_path)
         except requests.exceptions.HTTPError as e:
             status = e.response.status_code
             if status in RETRY_STATUSES and attempt < retries - 1:
                 wait = backoff_factor * (2 ** attempt)
-                logger.warning(f"HTTP {status} — {wait}초 후 재시도")
+                logger.warning(f"HTTP {status} — retrying in {wait}s")
                 time.sleep(wait)
             else:
-                logger.error(f"다운로드 실패: {e}")
+                logger.error(f"Download failed: {e}")
                 raise _to_click_error(e) from e
         except requests.exceptions.RequestException as e:
-            logger.error(f"다운로드 오류: {e}")
+            logger.error(f"Download error: {e}")
             raise _to_click_error(e) from e
 
-    raise click.ClickException(f"다운로드 {full_url} — {retries}회 재시도 후 실패")
+    raise click.ClickException(f"Download {full_url} — failed after {retries} retries")
