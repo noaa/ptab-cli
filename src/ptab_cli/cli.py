@@ -425,19 +425,30 @@ def doc_get(ctx: click.Context, doc_id: str, fmt: str, api_key: Optional[str]) -
 
 @doc.command("list")
 @click.argument("trial_number")
+@click.option("--category", default=None, help="문서 카테고리 필터 (예: FINAL, DECISION, MOTION, Exhibit).")
+@click.option("--party", default=None, help="제출 주체 필터 (BOARD, PETITIONER, PATENT OWNER).")
 @click.option("--format", "-f", "fmt", type=click.Choice(_FORMATS), default="table", show_default=True)
 @click.option("--api-key", default=None)
 @click.pass_context
-def doc_list(ctx: click.Context, trial_number: str, fmt: str, api_key: Optional[str]) -> None:
+def doc_list(ctx: click.Context, trial_number: str, category: Optional[str], party: Optional[str], fmt: str, api_key: Optional[str]) -> None:
     """Trial 번호별 문서 목록을 조회합니다.
 
     \b
     예시:
       ptab doc list IPR2023-00001
+      ptab doc list IPR2023-00001 --category FINAL
+      ptab doc list IPR2023-00001 --party BOARD
+      ptab doc list IPR2023-00001 --category FINAL --party BOARD
     """
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
     data = documents.get_documents_by_trial(api_key=key, trial_number=trial_number, timeout=timeout)
+    docs = data.get("patentTrialDocumentDataBag", [])
+    if category:
+        docs = [d for d in docs if d.get("documentData", {}).get("documentCategory", "").upper() == category.upper()]
+    if party:
+        docs = [d for d in docs if d.get("documentData", {}).get("filingPartyCategory", "").upper() == party.upper()]
+    data["patentTrialDocumentDataBag"] = docs
     out.print_list(data, out.DOC_FIELDS, fmt=fmt)
 
 
