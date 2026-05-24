@@ -155,6 +155,9 @@ def proc() -> None:
 @click.option("--type", "proc_type", default=None,
               type=click.Choice(["IPR", "PGR", "CBM"], case_sensitive=True),
               help="절차 유형 필터: IPR | PGR | CBM.")
+@click.option("--petitioner", default=None, help="청구인 이름 키워드 (petitionerPartyName).")
+@click.option("--patent", default=None, help="특허번호 (예: US9876543).")
+@click.option("--status", default=None, help="상태 카테고리 (예: Terminated, Pending).")
 @click.pass_context
 def proc_search(
     ctx: click.Context,
@@ -168,12 +171,16 @@ def proc_search(
     out_path: Optional[str],
     api_key: Optional[str],
     proc_type: Optional[str],
+    petitioner: Optional[str],
+    patent: Optional[str],
+    status: Optional[str],
 ) -> None:
     """Trial 절차를 검색합니다.
 
     \b
     예시:
-      ptab proc search --q "petitionerPartyName:Apple" --type IPR
+      ptab proc search --petitioner Apple --type IPR --status Terminated
+      ptab proc search --patent US9876543
       ptab proc search --from 2023-01-01 --to 2023-12-31 --limit 50
       ptab proc search --q "statusCategory:Terminated" --format csv --out result.csv
     """
@@ -187,7 +194,10 @@ def proc_search(
         date_clause = f"trialMetaData.petitionFilingDate:[{start} TO {end}]"
 
     type_clause = f"trialMetaData.trialTypeCode:{proc_type}" if proc_type else None
-    final_q = _build_query(query, type_clause, date_clause)
+    petitioner_clause = f"petitionerPartyName:{petitioner}" if petitioner else None
+    patent_clause = f"patentOwnerData.patentNumber:{patent}" if patent else None
+    status_clause = f"statusCategory:{status}" if status else None
+    final_q = _build_query(query, type_clause, petitioner_clause, patent_clause, status_clause, date_clause)
 
     data = proceedings.search_proceedings(
         api_key=key, q=final_q, sort=sort, offset=offset, limit=limit, timeout=timeout,
@@ -438,6 +448,25 @@ def doc_download(ctx: click.Context, query: Optional[str], out_path: str, api_ke
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
     saved = documents.download_documents_search(api_key=key, save_path=out_path, q=query, timeout=timeout)
+    click.echo(f"저장: {saved}")
+
+
+@doc.command("pdf")
+@click.argument("doc_id")
+@click.option("--out", "out_path", default=None, metavar="FILE", help="저장 경로 (기본값: {DOC_ID}.pdf).")
+@click.option("--api-key", default=None)
+@click.pass_context
+def doc_pdf(ctx: click.Context, doc_id: str, out_path: Optional[str], api_key: Optional[str]) -> None:
+    """문서 ID로 PDF 파일을 다운로드합니다.
+
+    \b
+    예시:
+      ptab doc pdf 171200528
+      ptab doc pdf 171200528 --out FWD_remand.pdf
+    """
+    key = _get_api_key(ctx.obj, api_key)
+    save = out_path or f"{doc_id}.pdf"
+    saved = documents.download_document_pdf(api_key=key, document_identifier=doc_id, save_path=save)
     click.echo(f"저장: {saved}")
 
 

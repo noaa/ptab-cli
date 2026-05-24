@@ -116,7 +116,7 @@ def download_binary(
     """
     import os
     url = f"{BASE_URL}{path}"
-    headers = {"X-API-KEY": api_key}
+    headers = {"X-API-KEY": api_key, "accept": "application/zip"}
 
     for attempt in range(retries):
         try:
@@ -144,3 +144,56 @@ def download_binary(
             raise _to_click_error(e) from e
 
     raise click.ClickException(f"다운로드 {url} — {retries}회 재시도 후 실패")
+
+
+def download_url(
+    full_url: str,
+    api_key: str,
+    save_path: str,
+    timeout: int = 120,
+    retries: int = 3,
+    backoff_factor: float = 1.0,
+) -> str:
+    """
+    전체 URL에서 바이너리 파일을 다운로드하여 저장합니다 (302 리다이렉트 follow 포함).
+
+    Args:
+        full_url: 다운로드할 전체 URL.
+        api_key: USPTO API 키.
+        save_path: 저장할 로컬 파일 경로.
+        timeout: 요청 타임아웃 (초).
+        retries: 최대 재시도 횟수.
+        backoff_factor: 지수 백오프 계수.
+
+    Returns:
+        저장된 파일의 절대 경로.
+    """
+    import os
+    headers = {"X-API-KEY": api_key}
+
+    for attempt in range(retries):
+        try:
+            logger.info(f"파일 다운로드: {full_url} → {save_path}")
+            response = requests.get(full_url, headers=headers, stream=True, timeout=timeout, allow_redirects=True)
+            response.raise_for_status()
+
+            os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)
+            with open(save_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            logger.info(f"다운로드 완료: {save_path}")
+            return os.path.abspath(save_path)
+        except requests.exceptions.HTTPError as e:
+            status = e.response.status_code
+            if status in RETRY_STATUSES and attempt < retries - 1:
+                wait = backoff_factor * (2 ** attempt)
+                logger.warning(f"HTTP {status} — {wait}초 후 재시도")
+                time.sleep(wait)
+            else:
+                logger.error(f"다운로드 실패: {e}")
+                raise _to_click_error(e) from e
+        except requests.exceptions.RequestException as e:
+            logger.error(f"다운로드 오류: {e}")
+            raise _to_click_error(e) from e
+
+    raise click.ClickException(f"다운로드 {full_url} — {retries}회 재시도 후 실패")

@@ -18,9 +18,11 @@ import logging
 from typing import Any, Dict, Optional
 from urllib.parse import urlencode
 
+import click
 
 
-from .client import download_binary, get
+
+from .client import download_binary, download_url, get
 
 logger = logging.getLogger(__name__)
 
@@ -146,6 +148,47 @@ def get_document(
         >>> doc = get_document(api_key, "DOCUMENT-ID-456")
     """
     return get(f"/api/v1/patent/trials/documents/{document_identifier}", api_key, timeout=timeout)
+
+
+def download_document_pdf(
+    api_key: str,
+    document_identifier: str,
+    save_path: str,
+    timeout: int = 120,
+) -> str:
+    """
+    문서 ID로 PDF 파일을 다운로드합니다.
+
+    문서 메타데이터에서 fileDownloadURI를 조회한 뒤 API 키 헤더로 다운로드합니다.
+
+    Args:
+        api_key: USPTO API 키.
+        document_identifier: 문서 식별자 (예: "171200528").
+        save_path: 저장할 로컬 파일 경로 (예: "output.pdf").
+        timeout: 다운로드 타임아웃 (초).
+
+    Returns:
+        저장된 파일의 절대 경로.
+
+    Example:
+        >>> path = download_document_pdf(api_key, "171200528", "FWD.pdf")
+    """
+    meta = get_document(api_key, document_identifier, timeout=30)
+
+    file_uri: Optional[str] = None
+    doc_data = meta.get("documentData") or {}
+    file_uri = doc_data.get("fileDownloadURI")
+    if not file_uri:
+        bags = meta.get("patentTrialDocumentDataBag") or []
+        if bags:
+            file_uri = (bags[0].get("documentData") or {}).get("fileDownloadURI")
+    if not file_uri:
+        raise click.ClickException(
+            f"문서 {document_identifier}의 fileDownloadURI를 찾을 수 없습니다. "
+            "'ptab doc get' 으로 응답 구조를 확인하세요."
+        )
+
+    return download_url(file_uri, api_key, save_path, timeout=timeout)
 
 
 def get_documents_by_trial(
