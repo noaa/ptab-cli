@@ -56,7 +56,7 @@ def _build_query(base_q: Optional[str], *clauses: Optional[str]) -> Optional[str
 
 # ── main 그룹 ─────────────────────────────────────────────────────────────────
 
-@click.group()
+@click.group(invoke_without_command=True)
 @click.version_option(__version__, prog_name="ptab")
 @click.option("--verbose", "-v", is_flag=True, default=False, help="디버그 로그 출력 (stderr).")
 @click.option("--timeout", default=None, type=int, help="요청 타임아웃 초.")
@@ -76,6 +76,9 @@ def main(ctx: click.Context, verbose: bool, timeout: Optional[int]) -> None:
     ctx.obj["timeout"] = timeout
     level = logging.DEBUG if verbose else logging.WARNING
     logging.basicConfig(stream=sys.stderr, level=level, format="%(levelname)s %(message)s")
+    if ctx.invoked_subcommand is None:
+        click.echo(f"ptab v{__version__}")
+        click.echo(ctx.get_help())
 
 
 # ── configure ─────────────────────────────────────────────────────────────────
