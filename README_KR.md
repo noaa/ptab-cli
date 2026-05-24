@@ -73,7 +73,7 @@ ptab decision download [--q Q] --out FILE.json
 ```bash
 ptab doc search [--q Q] [--type TYPE] [--from DATE] [--to DATE]
 ptab doc get DOC_ID
-ptab doc list TRIAL_NUMBER
+ptab doc list TRIAL_NUMBER [--category CATEGORY] [--party PARTY]
 ptab doc pdf DOC_ID [--out FILE.pdf]
 ptab doc download [--q Q] --out FILE.json
 ```
@@ -159,6 +159,15 @@ ptab proc download --q "petitionerPartyName:Samsung" --type IPR --out samsung_ip
 
 # Trial 문서 목록
 ptab doc list IPR2023-00001
+
+# 카테고리별 필터링 (FINAL, DECISION, MOTION, Exhibit 등)
+ptab doc list IPR2023-00001 --category FINAL
+
+# 제출 주체별 필터링 (BOARD, PETITIONER, PATENT OWNER)
+ptab doc list IPR2023-00001 --party BOARD
+
+# 조합 필터
+ptab doc list IPR2023-00001 --category FINAL --party BOARD
 
 # 개별 문서 PDF 다운로드
 ptab doc pdf 171200528

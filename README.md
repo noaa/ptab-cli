@@ -72,7 +72,7 @@ ptab decision download [--q Q] --out FILE.json
 ```bash
 ptab doc search [--q Q] [--type TYPE] [--from DATE] [--to DATE]
 ptab doc get DOC_ID
-ptab doc list TRIAL_NUMBER
+ptab doc list TRIAL_NUMBER [--category CATEGORY] [--party PARTY]
 ptab doc pdf DOC_ID [--out FILE.pdf]
 ptab doc download [--q Q] --out FILE.json
 ```
@@ -158,6 +158,15 @@ ptab proc download --q "petitionerPartyName:Samsung" --type IPR --out samsung_ip
 
 # List documents for a trial
 ptab doc list IPR2023-00001
+
+# Filter documents by category (FINAL, DECISION, MOTION, Exhibit, …)
+ptab doc list IPR2023-00001 --category FINAL
+
+# Filter documents by filing party (BOARD, PETITIONER, PATENT OWNER)
+ptab doc list IPR2023-00001 --party BOARD
+
+# Combine filters
+ptab doc list IPR2023-00001 --category FINAL --party BOARD
 
 # Download a single document as PDF
 ptab doc pdf 171200528
