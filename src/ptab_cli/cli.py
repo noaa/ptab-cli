@@ -194,9 +194,9 @@ def proc_search(
         date_clause = f"trialMetaData.petitionFilingDate:[{start} TO {end}]"
 
     type_clause = f"trialMetaData.trialTypeCode:{proc_type}" if proc_type else None
-    petitioner_clause = f"petitionerPartyName:{petitioner}" if petitioner else None
+    petitioner_clause = f"regularPetitionerData.realPartyInInterestName:{petitioner}" if petitioner else None
     patent_clause = f"patentOwnerData.patentNumber:{patent}" if patent else None
-    status_clause = f"statusCategory:{status}" if status else None
+    status_clause = f"trialMetaData.trialStatusCategory:{status}" if status else None
     final_q = _build_query(query, type_clause, petitioner_clause, patent_clause, status_clause, date_clause)
 
     data = proceedings.search_proceedings(
