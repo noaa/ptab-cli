@@ -232,7 +232,7 @@ def proc_get(ctx: click.Context, trial_number: str, fmt: str, api_key: Optional[
 @click.option("--from", "date_from", default=None, metavar="DATE")
 @click.option("--to", "date_to", default=None, metavar="DATE")
 @click.option("--type", "proc_type", default=None, type=click.Choice(["IPR", "PGR", "CBM"], case_sensitive=True))
-@click.option("--out", "out_path", required=True, metavar="FILE", help="저장할 ZIP 파일 경로.")
+@click.option("--out", "out_path", required=True, metavar="FILE", help="저장할 JSON 파일 경로.")
 @click.option("--api-key", default=None)
 @click.pass_context
 def proc_download(
@@ -244,11 +244,11 @@ def proc_download(
     out_path: str,
     api_key: Optional[str],
 ) -> None:
-    """절차 검색 결과를 ZIP으로 다운로드합니다.
+    """절차 검색 결과를 JSON으로 다운로드합니다.
 
     \b
     예시:
-      ptab proc download --q "petitionerPartyName:Samsung" --out samsung.zip
+      ptab proc download --q "petitionerPartyName:Samsung" --out samsung.json
     """
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
@@ -360,7 +360,7 @@ def decision_list(ctx: click.Context, trial_number: str, fmt: str, api_key: Opti
 @click.option("--api-key", default=None)
 @click.pass_context
 def decision_download(ctx: click.Context, query: Optional[str], out_path: str, api_key: Optional[str]) -> None:
-    """결정 검색 결과를 ZIP으로 다운로드합니다."""
+    """결정 검색 결과를 JSON으로 다운로드합니다."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
     saved = decisions.download_decisions_search(api_key=key, save_path=out_path, q=query, timeout=timeout)
@@ -447,7 +447,7 @@ def doc_list(ctx: click.Context, trial_number: str, fmt: str, api_key: Optional[
 @click.option("--api-key", default=None)
 @click.pass_context
 def doc_download(ctx: click.Context, query: Optional[str], out_path: str, api_key: Optional[str]) -> None:
-    """문서 검색 결과를 ZIP으로 다운로드합니다."""
+    """문서 검색 결과를 JSON으로 다운로드합니다."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
     saved = documents.download_documents_search(api_key=key, save_path=out_path, q=query, timeout=timeout)
@@ -545,7 +545,7 @@ def appeal_list(ctx: click.Context, appeal_number: str, fmt: str, api_key: Optio
 @click.option("--api-key", default=None)
 @click.pass_context
 def appeal_download(ctx: click.Context, query: Optional[str], out_path: str, api_key: Optional[str]) -> None:
-    """항소 결정 검색 결과를 ZIP으로 다운로드합니다."""
+    """항소 결정 검색 결과를 JSON으로 다운로드합니다."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
     saved = appeals.download_appeal_decisions_search(api_key=key, save_path=out_path, q=query, timeout=timeout)
@@ -626,7 +626,7 @@ def interference_list(ctx: click.Context, interference_number: str, fmt: str, ap
 @click.option("--api-key", default=None)
 @click.pass_context
 def interference_download(ctx: click.Context, query: Optional[str], out_path: str, api_key: Optional[str]) -> None:
-    """저촉심사 결정 검색 결과를 ZIP으로 다운로드합니다."""
+    """저촉심사 결정 검색 결과를 JSON으로 다운로드합니다."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
     saved = interferences.download_interference_decisions_search(

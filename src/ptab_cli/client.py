@@ -146,6 +146,40 @@ def download_binary(
     raise click.ClickException(f"다운로드 {url} — {retries}회 재시도 후 실패")
 
 
+def get_and_save_json(
+    path: str,
+    api_key: str,
+    save_path: str,
+    params: Optional[Dict[str, Any]] = None,
+    timeout: int = 120,
+) -> str:
+    """
+    GET 요청으로 JSON을 받아 파일로 저장합니다.
+
+    /search/download 엔드포인트는 ZIP이 아닌 JSON을 반환하므로
+    download_binary 대신 이 함수를 사용합니다.
+
+    Args:
+        path: BASE_URL 이후의 경로.
+        api_key: USPTO API 키.
+        save_path: 저장할 로컬 파일 경로 (예: "result.json").
+        params: URL 쿼리 파라미터 딕셔너리.
+        timeout: 요청 타임아웃 (초).
+
+    Returns:
+        저장된 파일의 절대 경로.
+    """
+    import os
+    data = get(path, api_key, params=params, timeout=timeout)
+    abs_path = os.path.abspath(save_path)
+    os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+    import json as _json
+    with open(abs_path, "w", encoding="utf-8") as f:
+        _json.dump(data, f, ensure_ascii=False, indent=2)
+    logger.info(f"JSON 저장 완료: {abs_path}")
+    return abs_path
+
+
 def download_url(
     full_url: str,
     api_key: str,

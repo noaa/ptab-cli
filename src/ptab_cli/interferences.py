@@ -16,11 +16,9 @@ import os
 import json
 import logging
 from typing import Any, Dict, Optional
-from urllib.parse import urlencode
 
 
-
-from .client import download_binary, get
+from .client import get, get_and_save_json
 
 logger = logging.getLogger(__name__)
 
@@ -122,8 +120,7 @@ def download_interference_decisions_search(
     if range_filters:
         params["rangeFilters"] = range_filters
 
-    path = f"/api/v1/patent/interferences/decisions/search/download?{urlencode(params)}"
-    return download_binary(path, api_key, save_path, timeout=timeout)
+    return get_and_save_json("/api/v1/patent/interferences/decisions/search/download", api_key, save_path, params=params, timeout=timeout)
 
 
 def get_decisions_by_interference(

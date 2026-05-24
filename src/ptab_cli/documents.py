@@ -22,7 +22,7 @@ import click
 
 
 
-from .client import download_binary, download_url, get
+from .client import download_url, get, get_and_save_json
 
 logger = logging.getLogger(__name__)
 
@@ -124,8 +124,7 @@ def download_documents_search(
     if range_filters:
         params["rangeFilters"] = range_filters
 
-    path = f"/api/v1/patent/trials/documents/search/download?{urlencode(params)}"
-    return download_binary(path, api_key, save_path, timeout=timeout)
+    return get_and_save_json("/api/v1/patent/trials/documents/search/download", api_key, save_path, params=params, timeout=timeout)
 
 
 def get_document(

@@ -18,7 +18,7 @@ from typing import Any, Dict, Optional
 
 
 
-from .client import download_binary, get
+from .client import get, get_and_save_json
 
 logger = logging.getLogger(__name__)
 
@@ -122,10 +122,7 @@ def download_proceedings_search(
     if range_filters:
         params["rangeFilters"] = range_filters
 
-    # 다운로드 엔드포인트는 쿼리 파라미터를 URL에 포함
-    from urllib.parse import urlencode
-    path = f"{_BASE_PATH}/search/download?{urlencode(params)}"
-    return download_binary(path, api_key, save_path, timeout=timeout)
+    return get_and_save_json(f"{_BASE_PATH}/search/download", api_key, save_path, params=params, timeout=timeout)
 
 
 def get_proceeding(
