@@ -5,7 +5,7 @@ Command structure:
   ptab configure
   ptab proc   search | get | download
   ptab decision search | get | list | download
-  ptab doc    search | get | list | download
+  ptab doc    search | get | list | download | pdf | parse
   ptab appeal search | get | list | download
   ptab interference search | get | list | download
 """
@@ -16,10 +16,17 @@ from typing import Optional
 
 import click
 
-from ptab_cli import __version__
+from ptab_cli import (
+    __version__,
+    appeals,
+    decisions,
+    documents,
+    interferences,
+    pdf_parser,
+    proceedings,
+)
 from ptab_cli import config as cfg
 from ptab_cli import output as out
-from ptab_cli import proceedings, decisions, documents, appeals, interferences
 
 _FORMATS = ("table", "json", "csv")
 
@@ -482,6 +489,101 @@ def doc_pdf(ctx: click.Context, doc_id: str, out_path: Optional[str], api_key: O
     save = out_path or f"{doc_id}.pdf"
     saved = documents.download_document_pdf(api_key=key, document_identifier=doc_id, save_path=save)
     click.echo(f"Saved: {saved}")
+
+
+@doc.command("parse")
+@click.argument("pdf_path", metavar="PDF_FILE")
+@click.option(
+    "--out", "out_path", default=None, metavar="FILE",
+    help="Output .md path (default: same name as PDF with .md extension).",
+)
+@click.pass_context
+def doc_parse(ctx: click.Context, pdf_path: str, out_path: Optional[str]) -> None:
+    """Convert a downloaded PDF to Markdown for AI analysis.
+
+    Extracts text using pdfminer.six and converts to structured Markdown
+    with YAML front matter (trial number, patent, document type, date).
+
+    Image-based pages (scanned exhibits) cannot be extracted automatically.
+    When detected, the command saves what it can and prints a warning with
+    the affected page numbers so you can handle them separately.
+
+    \b
+    Examples:
+      ptab doc parse FinalWrittenDecision.pdf
+      ptab doc parse 170093427.pdf --out analysis/fwd.md
+    """
+    save = out_path or pdf_parser.default_output_path(pdf_path)
+
+    try:
+        result = pdf_parser.parse_pdf(pdf_path)
+    except FileNotFoundError as e:
+        raise click.ClickException(str(e))
+    except ImportError as e:
+        raise click.ClickException(str(e))
+
+    saved = pdf_parser.save_markdown(result, save)
+
+    click.echo(f"Saved: {saved}")
+    click.echo(
+        f"  {result.total_pages} pages · "
+        f"{len(result.markdown):,} chars · "
+        f"type: {result.metadata.get('document_type', 'unknown')}"
+    )
+
+    if result.needs_ocr:
+        _warn_ocr_needed(pdf_path, result)
+
+
+def _warn_ocr_needed(pdf_path: str, result: "pdf_parser.PdfParseResult") -> None:
+    """OCR이 필요한 페이지에 대한 경고를 출력합니다."""
+    total = result.total_pages
+    ocr_pages = result.ocr_pages
+    ratio = len(ocr_pages) / total if total else 0
+
+    click.echo("", err=True)
+
+    if ratio >= 0.8:
+        # 대부분 또는 전체가 이미지 기반
+        click.secho(
+            "WARNING: This PDF appears to be image-based (scanned). "
+            "Text extraction produced little or no content.",
+            fg="yellow", bold=True, err=True,
+        )
+    else:
+        # 일부 페이지만 이미지
+        click.secho(
+            f"WARNING: {len(ocr_pages)} of {total} pages have no text layer "
+            f"(pages: {_format_page_list(ocr_pages)}).",
+            fg="yellow", bold=True, err=True,
+        )
+
+    click.secho(
+        "  These pages require OCR to extract text. Options:\n"
+        "  1. Install tesseract + run:  pip install pytesseract pdf2image\n"
+        "     then use a separate OCR script (see docs/ocr_fallback.md)\n"
+        "  2. Send the PDF directly to Claude API (handles images natively)\n"
+        "  3. Open the PDF manually to read image-only pages",
+        fg="yellow", err=True,
+    )
+    click.echo("", err=True)
+
+
+def _format_page_list(pages: list[int]) -> str:
+    """[1, 2, 3, 5, 6, 9] → '1-3, 5-6, 9' 형태로 압축합니다."""
+    if not pages:
+        return ""
+    ranges: list[str] = []
+    start = pages[0]
+    end = pages[0]
+    for p in pages[1:]:
+        if p == end + 1:
+            end = p
+        else:
+            ranges.append(str(start) if start == end else f"{start}-{end}")
+            start = end = p
+    ranges.append(str(start) if start == end else f"{start}-{end}")
+    return ", ".join(ranges)
 
 
 # ── appeal 그룹 ───────────────────────────────────────────────────────────────
