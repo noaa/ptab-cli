@@ -40,7 +40,7 @@ ptab decision list IPR2023-00001
 | 설정 파일 | `ptab configure` → `~/.ptab-cli.toml` |
 
 ```bash
-ptab configure          # 대화형 설정 (API 키 + 타임아웃 저장)
+ptab configure          # 대화형 설정 (API 키, 타임아웃, 프록시, CA 번들 저장)
 ptab configure --show   # 현재 설정 확인
 ```
 
@@ -48,6 +48,24 @@ ptab configure --show   # 현재 설정 확인
 - `--timeout N` 글로벌 옵션
 - `REQUEST_TIMEOUT` 환경변수
 - `~/.ptab-cli.toml` `[http] timeout` (기본: 30초)
+
+## 프록시 및 TLS 설정
+
+사내 프록시 환경이거나 커스텀 CA 번들이 필요한 경우 `ptab configure` 실행 후
+프록시/CA 항목을 입력하거나, `~/.ptab-cli.toml`을 직접 편집합니다:
+
+```toml
+[proxy]
+https = "http://proxy.example.com:8080"
+http  = "http://proxy.example.com:8080"
+
+[ssl]
+ca_bundle = "/path/to/ca-bundle.crt"
+```
+
+- 항목을 생략하면 표준 환경변수(`HTTPS_PROXY`, `HTTP_PROXY`, `REQUESTS_CA_BUNDLE`)로 fallback됩니다.
+- `ca_bundle`에 PEM 파일 경로를 지정하면 사설 CA로 TLS 검증을 수행합니다.
+- 프록시·CA 설정은 저장 후 모든 명령에 자동 적용됩니다.
 
 ## 명령어
 

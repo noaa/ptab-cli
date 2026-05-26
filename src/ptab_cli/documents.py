@@ -12,15 +12,13 @@ PTAB Trials — Documents API.
     uv run python documents.py
 """
 
-import os
 import json
 import logging
+import os
 from typing import Any, Dict, Optional
 from urllib.parse import urlencode
 
 import click
-
-
 
 from .client import download_url, get, get_and_save_json
 
@@ -43,6 +41,7 @@ def search_documents(
     filters: Optional[str] = None,
     range_filters: Optional[str] = None,
     timeout: int = _TIMEOUT,
+    **kwargs,
 ) -> Dict[str, Any]:
     """
     PTAB Trial 문서를 검색합니다.
@@ -80,7 +79,7 @@ def search_documents(
     if range_filters:
         params["rangeFilters"] = range_filters
 
-    return get("/api/v1/patent/trials/documents/search", api_key, params=params, timeout=timeout)
+    return get("/api/v1/patent/trials/documents/search", api_key, params=params, timeout=timeout, **kwargs)
 
 
 def download_documents_search(
@@ -93,6 +92,7 @@ def download_documents_search(
     filters: Optional[str] = None,
     range_filters: Optional[str] = None,
     timeout: int = 120,
+    **kwargs,
 ) -> str:
     """
     PTAB Trial 문서 검색 결과를 파일로 다운로드합니다.
@@ -124,13 +124,14 @@ def download_documents_search(
     if range_filters:
         params["rangeFilters"] = range_filters
 
-    return get_and_save_json("/api/v1/patent/trials/documents/search/download", api_key, save_path, params=params, timeout=timeout)
+    return get_and_save_json("/api/v1/patent/trials/documents/search/download", api_key, save_path, params=params, timeout=timeout, **kwargs)
 
 
 def get_document(
     api_key: str,
     document_identifier: str,
     timeout: int = _TIMEOUT,
+    **kwargs,
 ) -> Dict[str, Any]:
     """
     특정 문서 식별자의 PTAB Trial 문서를 조회합니다.
@@ -146,7 +147,7 @@ def get_document(
     Example:
         >>> doc = get_document(api_key, "DOCUMENT-ID-456")
     """
-    return get(f"/api/v1/patent/trials/documents/{document_identifier}", api_key, timeout=timeout)
+    return get(f"/api/v1/patent/trials/documents/{document_identifier}", api_key, timeout=timeout, **kwargs)
 
 
 def download_document_pdf(
@@ -154,6 +155,7 @@ def download_document_pdf(
     document_identifier: str,
     save_path: str,
     timeout: int = 120,
+    **kwargs,
 ) -> str:
     """
     문서 ID로 PDF 파일을 다운로드합니다.
@@ -172,7 +174,7 @@ def download_document_pdf(
     Example:
         >>> path = download_document_pdf(api_key, "171200528", "FWD.pdf")
     """
-    meta = get_document(api_key, document_identifier, timeout=30)
+    meta = get_document(api_key, document_identifier, timeout=30, **kwargs)
 
     file_uri: Optional[str] = None
     doc_data = meta.get("documentData") or {}
@@ -187,13 +189,14 @@ def download_document_pdf(
             "'ptab doc get' 으로 응답 구조를 확인하세요."
         )
 
-    return download_url(file_uri, api_key, save_path, timeout=timeout)
+    return download_url(file_uri, api_key, save_path, timeout=timeout, **kwargs)
 
 
 def get_documents_by_trial(
     api_key: str,
     trial_number: str,
     timeout: int = _TIMEOUT,
+    **kwargs,
 ) -> Dict[str, Any]:
     """
     특정 Trial 번호에 해당하는 모든 PTAB 문서를 조회합니다.
@@ -209,7 +212,7 @@ def get_documents_by_trial(
     Example:
         >>> docs = get_documents_by_trial(api_key, "IPR2023-00001")
     """
-    return get(f"/api/v1/patent/trials/{trial_number}/documents", api_key, timeout=timeout)
+    return get(f"/api/v1/patent/trials/{trial_number}/documents", api_key, timeout=timeout, **kwargs)
 
 
 # ── 단독 실행 ───────────────────────────────────────────────────────────────

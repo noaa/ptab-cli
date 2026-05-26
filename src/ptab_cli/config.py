@@ -32,6 +32,29 @@ def save(config: dict) -> None:
     CONFIG_PATH.write_text(_dump_toml(config), encoding="utf-8")
 
 
+def get_request_kwargs(config: dict) -> dict:
+    """config에서 requests.get()용 proxies, verify 값을 추출하여 반환.
+
+    설정이 없는 키는 포함하지 않으므로 requests가 환경변수로 fallback한다.
+    """
+    kwargs: dict = {}
+
+    proxy_cfg = config.get("proxy", {})
+    proxies: dict = {}
+    if proxy_cfg.get("https"):
+        proxies["https"] = proxy_cfg["https"]
+    if proxy_cfg.get("http"):
+        proxies["http"] = proxy_cfg["http"]
+    if proxies:
+        kwargs["proxies"] = proxies
+
+    ca_bundle = config.get("ssl", {}).get("ca_bundle")
+    if ca_bundle:
+        kwargs["verify"] = ca_bundle
+
+    return kwargs
+
+
 def resolve_api_key(cli_key: Optional[str] = None) -> str:
     """API 키를 우선순위에 따라 결정하여 반환.
 

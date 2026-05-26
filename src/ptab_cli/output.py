@@ -11,9 +11,9 @@ import json
 import sys
 from typing import Any, Optional
 
+from rich import box
 from rich.console import Console
 from rich.table import Table
-from rich import box
 
 _console = Console()
 _err_console = Console(stderr=True)

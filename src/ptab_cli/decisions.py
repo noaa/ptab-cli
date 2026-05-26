@@ -12,11 +12,10 @@ PTAB Trials — Decisions API.
     uv run python decisions.py
 """
 
-import os
 import json
 import logging
+import os
 from typing import Any, Dict, Optional
-
 
 from .client import get, get_and_save_json
 
@@ -39,6 +38,7 @@ def search_decisions(
     filters: Optional[str] = None,
     range_filters: Optional[str] = None,
     timeout: int = _TIMEOUT,
+    **kwargs,
 ) -> Dict[str, Any]:
     """
     PTAB Trial 결정을 검색합니다.
@@ -76,7 +76,7 @@ def search_decisions(
     if range_filters:
         params["rangeFilters"] = range_filters
 
-    return get("/api/v1/patent/trials/decisions/search", api_key, params=params, timeout=timeout)
+    return get("/api/v1/patent/trials/decisions/search", api_key, params=params, timeout=timeout, **kwargs)
 
 
 def download_decisions_search(
@@ -89,6 +89,7 @@ def download_decisions_search(
     filters: Optional[str] = None,
     range_filters: Optional[str] = None,
     timeout: int = 120,
+    **kwargs,
 ) -> str:
     """
     PTAB Trial 결정 검색 결과를 파일로 다운로드합니다.
@@ -120,13 +121,14 @@ def download_decisions_search(
     if range_filters:
         params["rangeFilters"] = range_filters
 
-    return get_and_save_json("/api/v1/patent/trials/decisions/search/download", api_key, save_path, params=params, timeout=timeout)
+    return get_and_save_json("/api/v1/patent/trials/decisions/search/download", api_key, save_path, params=params, timeout=timeout, **kwargs)
 
 
 def get_decision(
     api_key: str,
     document_identifier: str,
     timeout: int = _TIMEOUT,
+    **kwargs,
 ) -> Dict[str, Any]:
     """
     특정 문서 식별자의 PTAB Trial 결정을 조회합니다.
@@ -142,13 +144,14 @@ def get_decision(
     Example:
         >>> decision = get_decision(api_key, "DECISION-ID-123")
     """
-    return get(f"/api/v1/patent/trials/decisions/{document_identifier}", api_key, timeout=timeout)
+    return get(f"/api/v1/patent/trials/decisions/{document_identifier}", api_key, timeout=timeout, **kwargs)
 
 
 def get_decisions_by_trial(
     api_key: str,
     trial_number: str,
     timeout: int = _TIMEOUT,
+    **kwargs,
 ) -> Dict[str, Any]:
     """
     특정 Trial 번호에 해당하는 모든 PTAB 결정을 조회합니다.
@@ -164,7 +167,7 @@ def get_decisions_by_trial(
     Example:
         >>> decisions = get_decisions_by_trial(api_key, "IPR2023-00001")
     """
-    return get(f"/api/v1/patent/trials/{trial_number}/decisions", api_key, timeout=timeout)
+    return get(f"/api/v1/patent/trials/{trial_number}/decisions", api_key, timeout=timeout, **kwargs)
 
 
 # ── 단독 실행 ───────────────────────────────────────────────────────────────

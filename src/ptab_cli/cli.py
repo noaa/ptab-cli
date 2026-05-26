@@ -55,6 +55,10 @@ def _get_timeout(ctx_obj: dict) -> int:
     return cfg.resolve_timeout(ctx_obj.get("timeout"))
 
 
+def _get_request_kwargs(ctx_obj: dict) -> dict:
+    return ctx_obj.get("request_kwargs", {})
+
+
 def _build_query(base_q: Optional[str], *clauses: Optional[str]) -> Optional[str]:
     """Combine multiple Lucene clauses with AND into a single q string."""
     parts = [p for p in [base_q, *clauses] if p]
@@ -81,6 +85,7 @@ def main(ctx: click.Context, verbose: bool, timeout: Optional[int]) -> None:
     """
     ctx.ensure_object(dict)
     ctx.obj["timeout"] = timeout
+    ctx.obj["request_kwargs"] = cfg.get_request_kwargs(cfg.load())
     level = logging.DEBUG if verbose else logging.WARNING
     logging.basicConfig(stream=sys.stderr, level=level, format="%(levelname)s %(message)s")
     if ctx.invoked_subcommand is None:
@@ -102,6 +107,8 @@ def configure(show: bool) -> None:
     existing = cfg.load()
     auth_cfg = existing.get("auth", {})
     http_cfg = existing.get("http", {})
+    proxy_cfg = existing.get("proxy", {})
+    ssl_cfg = existing.get("ssl", {})
 
     click.echo("PTAB CLI — Configuration")
     click.echo("─" * 40)
@@ -111,8 +118,11 @@ def configure(show: bool) -> None:
     if show:
         current_key = auth_cfg.get("api_key", "")
         current_timeout = http_cfg.get("timeout", 30)
-        click.echo(f"  auth.api_key  = {cfg.mask_key(current_key)}")
-        click.echo(f"  http.timeout  = {current_timeout}")
+        click.echo(f"  auth.api_key    = {cfg.mask_key(current_key)}")
+        click.echo(f"  http.timeout    = {current_timeout}")
+        click.echo(f"  proxy.https     = {proxy_cfg.get('https', '(none)')}")
+        click.echo(f"  proxy.http      = {proxy_cfg.get('http', '(none)')}")
+        click.echo(f"  ssl.ca_bundle   = {ssl_cfg.get('ca_bundle', '(none)')}")
         return
 
     current_key = auth_cfg.get("api_key", "")
@@ -130,6 +140,24 @@ def configure(show: bool) -> None:
         show_default=True,
     ).strip()
 
+    https_proxy = click.prompt(
+        "HTTPS proxy URL",
+        default=proxy_cfg.get("https", ""),
+        show_default=bool(proxy_cfg.get("https")),
+    ).strip()
+
+    http_proxy = click.prompt(
+        "HTTP proxy URL",
+        default=proxy_cfg.get("http", ""),
+        show_default=bool(proxy_cfg.get("http")),
+    ).strip()
+
+    ca_bundle = click.prompt(
+        "CA bundle file path",
+        default=ssl_cfg.get("ca_bundle", ""),
+        show_default=bool(ssl_cfg.get("ca_bundle")),
+    ).strip()
+
     new_config: dict = {}
 
     final_key = new_key if new_key else current_key
@@ -143,6 +171,16 @@ def configure(show: bool) -> None:
 
     new_config["http"] = {"timeout": final_timeout}
 
+    if https_proxy or http_proxy:
+        new_config["proxy"] = {}
+        if https_proxy:
+            new_config["proxy"]["https"] = https_proxy
+        if http_proxy:
+            new_config["proxy"]["http"] = http_proxy
+
+    if ca_bundle:
+        new_config["ssl"] = {"ca_bundle": ca_bundle}
+
     if not new_config.get("auth"):
         click.echo("\nWarning: No API key provided. Run again to set one.", err=True)
         return
@@ -151,6 +189,11 @@ def configure(show: bool) -> None:
     click.echo(f"\nSaved: {cfg.CONFIG_PATH}")
     click.echo(f"  auth.api_key = {cfg.mask_key(final_key)}")
     click.echo(f"  http.timeout = {final_timeout}")
+    if new_config.get("proxy"):
+        for k, v in new_config["proxy"].items():
+            click.echo(f"  proxy.{k} = {v}")
+    if new_config.get("ssl"):
+        click.echo(f"  ssl.ca_bundle = {new_config['ssl']['ca_bundle']}")
 
 
 # ── proc 그룹 ─────────────────────────────────────────────────────────────────
@@ -211,6 +254,7 @@ def proc_search(
 
     data = proceedings.search_proceedings(
         api_key=key, q=final_q, sort=sort, offset=offset, limit=limit, timeout=timeout,
+        **_get_request_kwargs(ctx.obj),
     )
     out.print_list(data, out.PROC_FIELDS, fmt=fmt, out_path=out_path)
 
@@ -230,7 +274,7 @@ def proc_get(ctx: click.Context, trial_number: str, fmt: str, api_key: Optional[
     """
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
-    data = proceedings.get_proceeding(api_key=key, trial_number=trial_number, timeout=timeout)
+    data = proceedings.get_proceeding(api_key=key, trial_number=trial_number, timeout=timeout, **_get_request_kwargs(ctx.obj))
     out.print_detail(data, fmt=fmt)
 
 
@@ -271,6 +315,7 @@ def proc_download(
 
     saved = proceedings.download_proceedings_search(
         api_key=key, save_path=out_path, q=final_q, timeout=timeout,
+        **_get_request_kwargs(ctx.obj),
     )
     click.echo(f"Saved: {saved}")
 
@@ -326,6 +371,7 @@ def decision_search(
 
     data = decisions.search_decisions(
         api_key=key, q=final_q, sort=sort, offset=offset, limit=limit, timeout=timeout,
+        **_get_request_kwargs(ctx.obj),
     )
     out.print_list(data, out.DECISION_FIELDS, fmt=fmt, out_path=out_path)
 
@@ -339,7 +385,7 @@ def decision_get(ctx: click.Context, doc_id: str, fmt: str, api_key: Optional[st
     """Retrieve a single decision by document ID."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
-    data = decisions.get_decision(api_key=key, document_identifier=doc_id, timeout=timeout)
+    data = decisions.get_decision(api_key=key, document_identifier=doc_id, timeout=timeout, **_get_request_kwargs(ctx.obj))
     out.print_detail(data, fmt=fmt)
 
 
@@ -357,7 +403,7 @@ def decision_list(ctx: click.Context, trial_number: str, fmt: str, api_key: Opti
     """
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
-    data = decisions.get_decisions_by_trial(api_key=key, trial_number=trial_number, timeout=timeout)
+    data = decisions.get_decisions_by_trial(api_key=key, trial_number=trial_number, timeout=timeout, **_get_request_kwargs(ctx.obj))
     out.print_list(data, out.DECISION_FIELDS, fmt=fmt)
 
 
@@ -370,7 +416,7 @@ def decision_download(ctx: click.Context, query: Optional[str], out_path: str, a
     """Download decision search results as JSON."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
-    saved = decisions.download_decisions_search(api_key=key, save_path=out_path, q=query, timeout=timeout)
+    saved = decisions.download_decisions_search(api_key=key, save_path=out_path, q=query, timeout=timeout, **_get_request_kwargs(ctx.obj))
     click.echo(f"Saved: {saved}")
 
 
@@ -413,6 +459,7 @@ def doc_search(
 
     data = documents.search_documents(
         api_key=key, q=final_q, sort=sort, offset=offset, limit=limit, timeout=timeout,
+        **_get_request_kwargs(ctx.obj),
     )
     out.print_list(data, out.DOC_FIELDS, fmt=fmt, out_path=out_path)
 
@@ -426,7 +473,7 @@ def doc_get(ctx: click.Context, doc_id: str, fmt: str, api_key: Optional[str]) -
     """Retrieve a single document by document ID."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
-    data = documents.get_document(api_key=key, document_identifier=doc_id, timeout=timeout)
+    data = documents.get_document(api_key=key, document_identifier=doc_id, timeout=timeout, **_get_request_kwargs(ctx.obj))
     out.print_detail(data, fmt=fmt)
 
 
@@ -449,7 +496,7 @@ def doc_list(ctx: click.Context, trial_number: str, category: Optional[str], par
     """
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
-    data = documents.get_documents_by_trial(api_key=key, trial_number=trial_number, timeout=timeout)
+    data = documents.get_documents_by_trial(api_key=key, trial_number=trial_number, timeout=timeout, **_get_request_kwargs(ctx.obj))
     docs = data.get("patentTrialDocumentDataBag", [])
     if category:
         docs = [d for d in docs if d.get("documentData", {}).get("documentCategory", "").upper() == category.upper()]
@@ -468,7 +515,7 @@ def doc_download(ctx: click.Context, query: Optional[str], out_path: str, api_ke
     """Download document search results as JSON."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
-    saved = documents.download_documents_search(api_key=key, save_path=out_path, q=query, timeout=timeout)
+    saved = documents.download_documents_search(api_key=key, save_path=out_path, q=query, timeout=timeout, **_get_request_kwargs(ctx.obj))
     click.echo(f"Saved: {saved}")
 
 
@@ -487,7 +534,7 @@ def doc_pdf(ctx: click.Context, doc_id: str, out_path: Optional[str], api_key: O
     """
     key = _get_api_key(ctx.obj, api_key)
     save = out_path or f"{doc_id}.pdf"
-    saved = documents.download_document_pdf(api_key=key, document_identifier=doc_id, save_path=save)
+    saved = documents.download_document_pdf(api_key=key, document_identifier=doc_id, save_path=save, **_get_request_kwargs(ctx.obj))
     click.echo(f"Saved: {saved}")
 
 
@@ -622,6 +669,7 @@ def appeal_search(
 
     data = appeals.search_appeal_decisions(
         api_key=key, q=final_q, sort=sort, offset=offset, limit=limit, timeout=timeout,
+        **_get_request_kwargs(ctx.obj),
     )
     out.print_list(data, out.APPEAL_FIELDS, fmt=fmt, out_path=out_path)
 
@@ -635,7 +683,7 @@ def appeal_get(ctx: click.Context, doc_id: str, fmt: str, api_key: Optional[str]
     """Retrieve a single appeal decision by document ID."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
-    data = appeals.get_appeal_decision(api_key=key, document_identifier=doc_id, timeout=timeout)
+    data = appeals.get_appeal_decision(api_key=key, document_identifier=doc_id, timeout=timeout, **_get_request_kwargs(ctx.obj))
     out.print_detail(data, fmt=fmt)
 
 
@@ -648,7 +696,7 @@ def appeal_list(ctx: click.Context, appeal_number: str, fmt: str, api_key: Optio
     """List decisions for an appeal number."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
-    data = appeals.get_decisions_by_appeal(api_key=key, appeal_number=appeal_number, timeout=timeout)
+    data = appeals.get_decisions_by_appeal(api_key=key, appeal_number=appeal_number, timeout=timeout, **_get_request_kwargs(ctx.obj))
     out.print_list(data, out.APPEAL_FIELDS, fmt=fmt)
 
 
@@ -661,7 +709,7 @@ def appeal_download(ctx: click.Context, query: Optional[str], out_path: str, api
     """Download appeal decision search results as JSON."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
-    saved = appeals.download_appeal_decisions_search(api_key=key, save_path=out_path, q=query, timeout=timeout)
+    saved = appeals.download_appeal_decisions_search(api_key=key, save_path=out_path, q=query, timeout=timeout, **_get_request_kwargs(ctx.obj))
     click.echo(f"Saved: {saved}")
 
 
@@ -701,6 +749,7 @@ def interference_search(
 
     data = interferences.search_interference_decisions(
         api_key=key, q=final_q, sort=sort, offset=offset, limit=limit, timeout=timeout,
+        **_get_request_kwargs(ctx.obj),
     )
     out.print_list(data, out.INTERFERENCE_FIELDS, fmt=fmt, out_path=out_path)
 
@@ -714,7 +763,7 @@ def interference_get(ctx: click.Context, doc_id: str, fmt: str, api_key: Optiona
     """Retrieve a single interference decision by document ID."""
     key = _get_api_key(ctx.obj, api_key)
     timeout = _get_timeout(ctx.obj)
-    data = interferences.get_interference_decision(api_key=key, document_identifier=doc_id, timeout=timeout)
+    data = interferences.get_interference_decision(api_key=key, document_identifier=doc_id, timeout=timeout, **_get_request_kwargs(ctx.obj))
     out.print_detail(data, fmt=fmt)
 
 
@@ -729,6 +778,7 @@ def interference_list(ctx: click.Context, interference_number: str, fmt: str, ap
     timeout = _get_timeout(ctx.obj)
     data = interferences.get_decisions_by_interference(
         api_key=key, interference_number=interference_number, timeout=timeout,
+        **_get_request_kwargs(ctx.obj),
     )
     out.print_list(data, out.INTERFERENCE_FIELDS, fmt=fmt)
 
@@ -744,5 +794,6 @@ def interference_download(ctx: click.Context, query: Optional[str], out_path: st
     timeout = _get_timeout(ctx.obj)
     saved = interferences.download_interference_decisions_search(
         api_key=key, save_path=out_path, q=query, timeout=timeout,
+        **_get_request_kwargs(ctx.obj),
     )
     click.echo(f"Saved: {saved}")

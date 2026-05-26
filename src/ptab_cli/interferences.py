@@ -12,11 +12,10 @@ PTAB Interferences — Decisions API.
     uv run python interferences.py
 """
 
-import os
 import json
 import logging
+import os
 from typing import Any, Dict, Optional
-
 
 from .client import get, get_and_save_json
 
@@ -39,6 +38,7 @@ def search_interference_decisions(
     filters: Optional[str] = None,
     range_filters: Optional[str] = None,
     timeout: int = _TIMEOUT,
+    **kwargs,
 ) -> Dict[str, Any]:
     """
     PTAB 저촉심사 결정(Interference Decisions)을 검색합니다.
@@ -76,7 +76,7 @@ def search_interference_decisions(
     if range_filters:
         params["rangeFilters"] = range_filters
 
-    return get("/api/v1/patent/interferences/decisions/search", api_key, params=params, timeout=timeout)
+    return get("/api/v1/patent/interferences/decisions/search", api_key, params=params, timeout=timeout, **kwargs)
 
 
 def download_interference_decisions_search(
@@ -89,6 +89,7 @@ def download_interference_decisions_search(
     filters: Optional[str] = None,
     range_filters: Optional[str] = None,
     timeout: int = 120,
+    **kwargs,
 ) -> str:
     """
     PTAB 저촉심사 결정 검색 결과를 파일로 다운로드합니다.
@@ -120,13 +121,14 @@ def download_interference_decisions_search(
     if range_filters:
         params["rangeFilters"] = range_filters
 
-    return get_and_save_json("/api/v1/patent/interferences/decisions/search/download", api_key, save_path, params=params, timeout=timeout)
+    return get_and_save_json("/api/v1/patent/interferences/decisions/search/download", api_key, save_path, params=params, timeout=timeout, **kwargs)
 
 
 def get_decisions_by_interference(
     api_key: str,
     interference_number: str,
     timeout: int = _TIMEOUT,
+    **kwargs,
 ) -> Dict[str, Any]:
     """
     특정 저촉심사 번호에 해당하는 모든 PTAB 결정을 조회합니다.
@@ -146,6 +148,7 @@ def get_decisions_by_interference(
         f"/api/v1/patent/interferences/{interference_number}/decisions",
         api_key,
         timeout=timeout,
+        **kwargs,
     )
 
 
@@ -153,6 +156,7 @@ def get_interference_decision(
     api_key: str,
     document_identifier: str,
     timeout: int = _TIMEOUT,
+    **kwargs,
 ) -> Dict[str, Any]:
     """
     특정 문서 식별자의 PTAB 저촉심사 결정을 조회합니다.
@@ -172,6 +176,7 @@ def get_interference_decision(
         f"/api/v1/patent/interferences/decisions/{document_identifier}",
         api_key,
         timeout=timeout,
+        **kwargs,
     )
 
 

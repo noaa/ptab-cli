@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ptab-cli"
-version = "0.1.8"
+version = "0.1.9"
 description = "USPTO PTAB Trial proceedings CLI — search IPR/PGR/CBM decisions from the terminal"
 readme = "README.md"
 license = { text = "MIT" }

@@ -4,11 +4,12 @@ USPTO ODP PTAB API 공통 HTTP 클라이언트.
 재시도/지수 백오프 포함. 이 모듈은 ptab/ 패키지 내 모든 API 스크립트가 공유합니다.
 """
 
-import time
 import logging
-import requests
+import time
+from typing import Any, Dict, Optional, Union
+
 import click
-from typing import Any, Dict, Optional
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,8 @@ def get(
     timeout: int = 30,
     retries: int = 3,
     backoff_factor: float = 1.0,
+    proxies: Optional[Dict[str, str]] = None,
+    verify: Union[str, bool] = True,
 ) -> Dict[str, Any]:
     """
     GET 요청을 보내고 JSON 응답을 반환합니다.
@@ -70,7 +73,10 @@ def get(
     for attempt in range(retries):
         try:
             logger.info(f"GET {url} params={params}")
-            response = requests.get(url, headers=headers, params=params, timeout=timeout)
+            response = requests.get(
+                url, headers=headers, params=params, timeout=timeout,
+                proxies=proxies, verify=verify,
+            )
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
@@ -96,6 +102,8 @@ def download_binary(
     timeout: int = 120,
     retries: int = 3,
     backoff_factor: float = 1.0,
+    proxies: Optional[Dict[str, str]] = None,
+    verify: Union[str, bool] = True,
 ) -> str:
     """
     바이너리 파일(PDF, ZIP 등)을 다운로드하여 저장합니다.
@@ -121,7 +129,10 @@ def download_binary(
     for attempt in range(retries):
         try:
             logger.info(f"Downloading: {url} → {save_path}")
-            response = requests.get(url, headers=headers, stream=True, timeout=timeout)
+            response = requests.get(
+                url, headers=headers, stream=True, timeout=timeout,
+                proxies=proxies, verify=verify,
+            )
             response.raise_for_status()
 
             os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)
@@ -152,6 +163,8 @@ def get_and_save_json(
     save_path: str,
     params: Optional[Dict[str, Any]] = None,
     timeout: int = 120,
+    proxies: Optional[Dict[str, str]] = None,
+    verify: Union[str, bool] = True,
 ) -> str:
     """
     GET 요청으로 JSON을 받아 파일로 저장합니다.
@@ -170,7 +183,7 @@ def get_and_save_json(
         저장된 파일의 절대 경로.
     """
     import os
-    data = get(path, api_key, params=params, timeout=timeout)
+    data = get(path, api_key, params=params, timeout=timeout, proxies=proxies, verify=verify)
     abs_path = os.path.abspath(save_path)
     os.makedirs(os.path.dirname(abs_path), exist_ok=True)
     import json as _json
@@ -187,6 +200,8 @@ def download_url(
     timeout: int = 120,
     retries: int = 3,
     backoff_factor: float = 1.0,
+    proxies: Optional[Dict[str, str]] = None,
+    verify: Union[str, bool] = True,
 ) -> str:
     """
     전체 URL에서 바이너리 파일을 다운로드하여 저장합니다 (302 리다이렉트 follow 포함).
@@ -208,7 +223,10 @@ def download_url(
     for attempt in range(retries):
         try:
             logger.info(f"Downloading: {full_url} → {save_path}")
-            response = requests.get(full_url, headers=headers, stream=True, timeout=timeout, allow_redirects=True)
+            response = requests.get(
+                full_url, headers=headers, stream=True, timeout=timeout,
+                allow_redirects=True, proxies=proxies, verify=verify,
+            )
             response.raise_for_status()
 
             os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)

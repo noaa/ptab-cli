@@ -39,7 +39,7 @@ Priority order (highest first):
 | Config file | `ptab configure` → `~/.ptab-cli.toml` |
 
 ```bash
-ptab configure          # Interactive setup (saves API key + timeout)
+ptab configure          # Interactive setup (API key, timeout, proxy, CA bundle)
 ptab configure --show   # Show current configuration
 ```
 
@@ -47,6 +47,25 @@ Timeout follows the same priority:
 - `--timeout N` global option
 - `REQUEST_TIMEOUT` environment variable
 - `~/.ptab-cli.toml` `[http] timeout` (default: 30s)
+
+## Proxy & TLS Configuration
+
+If you are behind a corporate proxy or need a custom CA bundle, run `ptab configure`
+and fill in the proxy/CA fields, or edit `~/.ptab-cli.toml` directly:
+
+```toml
+[proxy]
+https = "http://proxy.example.com:8080"
+http  = "http://proxy.example.com:8080"
+
+[ssl]
+ca_bundle = "/path/to/ca-bundle.crt"
+```
+
+- Omitting a key leaves requests to fall back to the standard environment variables
+  (`HTTPS_PROXY`, `HTTP_PROXY`, `REQUESTS_CA_BUNDLE`).
+- Set `ca_bundle` to the path of a PEM file to verify against a private CA.
+- Proxy and CA settings apply to every command automatically once saved.
 
 ## Commands
 

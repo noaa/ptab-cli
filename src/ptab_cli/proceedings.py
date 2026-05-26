@@ -11,12 +11,10 @@ PTAB Trials — Proceedings API.
     uv run python proceedings.py
 """
 
-import os
 import json
 import logging
+import os
 from typing import Any, Dict, Optional
-
-
 
 from .client import get, get_and_save_json
 
@@ -41,6 +39,7 @@ def search_proceedings(
     filters: Optional[str] = None,
     range_filters: Optional[str] = None,
     timeout: int = _TIMEOUT,
+    **kwargs,
 ) -> Dict[str, Any]:
     """
     PTAB Trial 절차를 검색합니다.
@@ -78,7 +77,7 @@ def search_proceedings(
     if range_filters:
         params["rangeFilters"] = range_filters
 
-    return get(f"{_BASE_PATH}/search", api_key, params=params, timeout=timeout)
+    return get(f"{_BASE_PATH}/search", api_key, params=params, timeout=timeout, **kwargs)
 
 
 def download_proceedings_search(
@@ -91,6 +90,7 @@ def download_proceedings_search(
     filters: Optional[str] = None,
     range_filters: Optional[str] = None,
     timeout: int = 120,
+    **kwargs,
 ) -> str:
     """
     PTAB Trial 절차 검색 결과를 파일로 다운로드합니다.
@@ -122,13 +122,14 @@ def download_proceedings_search(
     if range_filters:
         params["rangeFilters"] = range_filters
 
-    return get_and_save_json(f"{_BASE_PATH}/search/download", api_key, save_path, params=params, timeout=timeout)
+    return get_and_save_json(f"{_BASE_PATH}/search/download", api_key, save_path, params=params, timeout=timeout, **kwargs)
 
 
 def get_proceeding(
     api_key: str,
     trial_number: str,
     timeout: int = _TIMEOUT,
+    **kwargs,
 ) -> Dict[str, Any]:
     """
     특정 Trial 번호의 PTAB 절차 정보를 조회합니다.
@@ -145,7 +146,7 @@ def get_proceeding(
         >>> proc = get_proceeding(api_key, "IPR2023-00001")
         >>> print(proc["trialNumber"])
     """
-    return get(f"{_BASE_PATH}/{trial_number}", api_key, timeout=timeout)
+    return get(f"{_BASE_PATH}/{trial_number}", api_key, timeout=timeout, **kwargs)
 
 
 # ── 단독 실행 ───────────────────────────────────────────────────────────────
