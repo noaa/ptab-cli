@@ -93,6 +93,7 @@ ptab doc search [--q Q] [--type TYPE] [--from DATE] [--to DATE]
 ptab doc get DOC_ID
 ptab doc list TRIAL_NUMBER [--category CATEGORY] [--party PARTY]
 ptab doc pdf DOC_ID [--out FILE.pdf]
+ptab doc parse PDF_FILE [--out FILE.md]
 ptab doc download [--q Q] --out FILE.json
 ```
 
@@ -113,6 +114,23 @@ ptab interference get DOC_ID
 ptab interference list INTERFERENCE_NUMBER
 ptab interference download [--q Q] --out FILE.json
 ```
+
+## PDF → Markdown 변환
+
+`ptab doc parse`는 다운로드한 PTAB PDF를 구조화된 Markdown으로 변환합니다. AI 코딩 어시스턴트나 문서 분석 파이프라인에서 바로 활용할 수 있습니다.
+
+```bash
+# PDF로 문서 다운로드 후 Markdown 변환
+ptab doc pdf 171200528 --out fwd.pdf
+ptab doc parse fwd.pdf
+
+# 출력 경로 지정
+ptab doc parse fwd.pdf --out analysis/fwd.md
+```
+
+출력 `.md` 파일은 YAML front matter(Trial 번호·특허번호·문서 유형·날짜)와 본문 텍스트로 구성됩니다. 이미지 기반(스캔) 페이지는 자동으로 감지되며, 추출 가능한 텍스트는 저장하고 해당 페이지 번호를 경고로 출력합니다.
+
+> **참고:** OCR은 자동 실행되지 않습니다. PDF가 완전히 이미지 기반인 경우 외부 OCR 도구를 먼저 사용하세요.
 
 ## 공통 옵션
 
@@ -190,6 +208,10 @@ ptab doc list IPR2023-00001 --category FINAL --party BOARD
 # 개별 문서 PDF 다운로드
 ptab doc pdf 171200528
 ptab doc pdf 171200528 --out petition.pdf
+
+# PDF를 AI 분석용 Markdown으로 변환
+ptab doc parse petition.pdf
+ptab doc parse petition.pdf --out analysis/petition.md
 
 # Lucene 쿼리 조합
 ptab proc search --q "statusCategory:Terminated AND trialMetaData.trialTypeCode:IPR"

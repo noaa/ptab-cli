@@ -93,6 +93,7 @@ ptab doc search [--q Q] [--type TYPE] [--from DATE] [--to DATE]
 ptab doc get DOC_ID
 ptab doc list TRIAL_NUMBER [--category CATEGORY] [--party PARTY]
 ptab doc pdf DOC_ID [--out FILE.pdf]
+ptab doc parse PDF_FILE [--out FILE.md]
 ptab doc download [--q Q] --out FILE.json
 ```
 
@@ -113,6 +114,23 @@ ptab interference get DOC_ID
 ptab interference list INTERFERENCE_NUMBER
 ptab interference download [--q Q] --out FILE.json
 ```
+
+## PDF → Markdown Conversion
+
+`ptab doc parse` converts a downloaded PTAB PDF into structured Markdown for use with AI coding assistants or document analysis pipelines.
+
+```bash
+# Download a document as PDF, then convert to Markdown
+ptab doc pdf 171200528 --out fwd.pdf
+ptab doc parse fwd.pdf
+
+# Specify a custom output path
+ptab doc parse fwd.pdf --out analysis/fwd.md
+```
+
+The output `.md` file includes YAML front matter (trial number, patent number, document type, date) followed by the full extracted text. Image-based (scanned) pages are automatically detected — the command saves whatever text it can extract and prints a warning with the affected page numbers.
+
+> **Note:** OCR is not performed automatically. If your PDF is fully image-based, use an external OCR tool first.
 
 ## Options
 
@@ -190,6 +208,10 @@ ptab doc list IPR2023-00001 --category FINAL --party BOARD
 # Download a single document as PDF
 ptab doc pdf 171200528
 ptab doc pdf 171200528 --out petition.pdf
+
+# Convert a PDF to Markdown for AI analysis
+ptab doc parse petition.pdf
+ptab doc parse petition.pdf --out analysis/petition.md
 
 # Combine Lucene query clauses
 ptab proc search --q "statusCategory:Terminated AND trialMetaData.trialTypeCode:IPR"
